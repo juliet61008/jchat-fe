@@ -58,9 +58,20 @@ const Login = () => {
   };
 
   /**
+   *
+   */
+  const handlePasswordInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.code === "Enter") {
+      handleLoginBtnClick();
+    }
+  };
+
+  /**
    * 로그인 버튼 onClick 이벤트
    */
-  const handleOnClickLoginBtn = async () => {
+  const handleLoginBtnClick = async () => {
     setIsLoading(true);
 
     if (!formRef.current) {
@@ -88,6 +99,25 @@ const Login = () => {
     };
 
     const res = await getAuthLogin(getAuthLoginReqDto);
+
+    // 정상 인증
+    if (res.code === 0) {
+      router.push("/");
+    }
+    // 아이디 조회 불가
+    else if (res.code === -2) {
+      alert("아이디 틀림");
+      document.getElementById("id")?.focus();
+    }
+    // 비밀번호 틀림
+    else if (res.code === -3) {
+      alert("비번 틀림");
+      document.getElementById("password")?.focus();
+    }
+    // 외
+    else {
+      alert("로그인 불가");
+    }
 
     setIsLoading(false);
   };
@@ -142,6 +172,7 @@ const Login = () => {
                   type="password"
                   // value={password}
                   onInput={handleOnInputLogin}
+                  onKeyDown={handlePasswordInputKeyDown}
                   required
                 />
               </div>
@@ -151,7 +182,7 @@ const Login = () => {
         <CardFooter className="flex-col gap-2">
           <Button
             type="submit"
-            onClick={handleOnClickLoginBtn}
+            onClick={handleLoginBtnClick}
             className="w-full"
           >
             로그인

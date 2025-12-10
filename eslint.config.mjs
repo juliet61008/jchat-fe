@@ -1,6 +1,6 @@
-import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import { defineConfig, globalIgnores } from "eslint/config";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -28,6 +28,7 @@ const eslintConfig = defineConfig([
 
       // import 관련
       "no-duplicate-imports": "error", // 중복 import 금지
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 ]);
