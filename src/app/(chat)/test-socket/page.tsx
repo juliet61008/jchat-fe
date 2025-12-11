@@ -65,7 +65,7 @@ export default function TestSocketPage() {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="메시지 입력"
           className="border p-2 mr-2"
-          onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           disabled={!connected}
         />
         <button

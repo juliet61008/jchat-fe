@@ -1,15 +1,15 @@
 import Loading from "@/components/common/Loading";
-import { redirect } from "next/navigation";
+import Logout from "@/components/mem/Logout";
 
 const page = async () => {
-  await fetch(`${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
+  // redirect("/");
 
-  redirect("/");
-
-  return <Loading isLoading={true} />;
+  return (
+    <>
+      <Logout />
+      <Loading isLoading={true} />
+    </>
+  );
 };
 
 export default page;
