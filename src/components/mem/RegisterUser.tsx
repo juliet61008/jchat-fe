@@ -273,7 +273,7 @@ const RegisterUser = () => {
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>도메인</SelectLabel>
-                      <SelectItem value="google.com">google.com</SelectItem>
+                      <SelectItem value="gmail.com">gmail.com</SelectItem>
                       <SelectItem value="naver.com">naver.com</SelectItem>
                       <SelectItem value="daum.net">daum.net</SelectItem>
                     </SelectGroup>

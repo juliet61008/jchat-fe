@@ -1,6 +1,7 @@
 // components/chat/ChatRoom.tsx
 "use client";
 
+import { IJwtPayLoad } from "@/interface/auth/interfaceJwt";
 import { Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -12,15 +13,15 @@ interface Message {
   isMine: boolean;
 }
 
-interface ChatRoomProps {
+interface Props {
+  user: IJwtPayLoad;
   roomName: string;
   participantCount: number;
 }
 
-export default function ChatRoom({
-  roomName,
-  participantCount,
-}: ChatRoomProps) {
+const ChatRoom = (props: Props) => {
+  const { user, roomName, participantCount } = props;
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -154,4 +155,6 @@ export default function ChatRoom({
       </div>
     </div>
   );
-}
+};
+
+export default ChatRoom;

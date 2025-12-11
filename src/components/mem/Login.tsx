@@ -15,13 +15,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IAuthLoginReqDto } from "@/interface/auth/interfaceAuthLogin";
 import { getAuthLogin } from "@/service/auth/apiAuthLogin";
+import { getUser } from "@/utils/mem/userUtil";
 import { useRouter } from "next/navigation";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const Login = () => {
   /***************
    * 지역변수 선언부
    ***************/
+
+  const [user, setUser] = useState();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -128,6 +131,13 @@ const Login = () => {
   const handleSignUpBtnClick = () => {
     router.push("/mem/register");
   };
+
+  useEffect(() => {
+    const test = async () => {
+      const res = await getUser();
+      if (res != null) setUser(res);
+    };
+  }, []);
 
   return (
     <>

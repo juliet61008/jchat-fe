@@ -12,7 +12,7 @@ export const registerUser = async (
   params: IRegisterUserReqDto
 ): Promise<IRegisterUserResDto> => {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/mem/registerUser`,
+    `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/mem/user/registerUser`,
     {
       method: "POST",
       headers: {
