@@ -3,14 +3,14 @@
 import BackHeader from "@/components/common/BackHeader";
 import Loading from "@/components/common/Loading";
 import UserCard from "@/components/mem/UserCard";
-import { ISearchUserListResDto } from "@/interface/mem/interfaceMemFriend";
-import { apiSearchUserList } from "@/service/mem/apiMemFriend";
+import { ISearchFriendListResDto } from "@/interface/mem/interfaceMemFriend";
+import { apiSearchFriendList } from "@/service/mem/apiMemFriend";
 import { useQuery } from "@tanstack/react-query";
 
 const UserList = () => {
-  const { data, isLoading, isFetching } = useQuery<ISearchUserListResDto[]>({
+  const { data, isLoading, isFetching } = useQuery<ISearchFriendListResDto[]>({
     queryKey: ["rcmUserList"],
-    queryFn: () => apiSearchUserList(),
+    queryFn: () => apiSearchFriendList(),
     refetchOnMount: "always",
     staleTime: 5 * 60 * 1000,
   });
@@ -24,7 +24,6 @@ const UserList = () => {
           <BackHeader title="사용자 목록" />
 
           <div className="flex-1 overflow-y-auto scrollbar-smooth">
-            {/* 여기에 map으로 UserCard 렌더링 */}
             {data &&
               data.length > 0 &&
               data.map((obj, idx) => (

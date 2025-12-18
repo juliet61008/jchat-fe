@@ -1,5 +1,5 @@
 import UserList from "@/components/mem/UserList";
-import { apiSearchUserList } from "@/service/mem/apiMemFriend";
+import { apiSearchFriendList } from "@/service/mem/apiMemFriend";
 import {
   dehydrate,
   HydrationBoundary,
@@ -12,7 +12,7 @@ const page = async () => {
 
   await queryClient.prefetchQuery({
     queryKey: ["rcmUserList"],
-    queryFn: () => apiSearchUserList(),
+    queryFn: () => apiSearchFriendList(),
   });
 
   return (

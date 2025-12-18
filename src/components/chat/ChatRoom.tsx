@@ -75,8 +75,6 @@ const ChatRoom = (props: Props) => {
         createTm: Date.now().toString(),
       };
 
-      // setMessages([...messages, newMessage]);
-
       if (clientRef.current && connected && inputValue) {
         const chatSendParams: ISendMsgReqDto = {
           tempId: tempId,
@@ -128,6 +126,7 @@ const ChatRoom = (props: Props) => {
   // }, [roomId, queryClient]);
 
   useEffect(() => {
+    console.log("apiSearchChatRoomData", apiSearchChatRoomData);
     scrollToBottom();
   }, [apiSearchChatRoomData]);
 
