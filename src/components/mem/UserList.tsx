@@ -32,6 +32,7 @@ const UserList = () => {
                   data={obj}
                   onAddFriend={() => {}}
                   onOpenChat={() => {}}
+                  blockFriendBtnClick={() => {}}
                 />
               ))}
           </div>

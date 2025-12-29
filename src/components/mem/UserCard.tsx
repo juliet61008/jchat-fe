@@ -1,4 +1,3 @@
-// components/UserCard.tsx
 "use client";
 
 import { IComOtherUser } from "@/interface/mem/interfaceMemFriend";
@@ -7,13 +6,15 @@ import { useEffect, useRef, useState } from "react";
 
 interface Props {
   data: IComOtherUser;
-  onAddFriend: (userId: number) => void;
-  onOpenChat: (userId: number) => void;
+  onAddFriend: (userNo: number) => void;
+  onOpenChat: (userNo: number) => void;
+  blockFriendBtnClick: (userNo: number, blockYn: "Y" | "N") => void;
 }
 
 export default function UserCard(props: Props) {
-  const { data, onAddFriend, onOpenChat } = props;
+  const { data, onAddFriend, onOpenChat, blockFriendBtnClick } = props;
 
+  // 메뉴오픈
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -54,15 +55,45 @@ export default function UserCard(props: Props) {
 
         {isMenuOpen && (
           <div className="absolute right-0 mt-1 w-36 bg-card border rounded-lg shadow-lg overflow-hidden z-20">
-            <button
-              onClick={() => {
-                onAddFriend(data.userNo);
-                setIsMenuOpen(false);
-              }}
-              className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors"
-            >
-              친구 추가
-            </button>
+            {/* 친구 아닌 경우 */}
+            {data.friendYn === "N" && (
+              <button
+                onClick={() => {
+                  onAddFriend(data.userNo);
+                  setIsMenuOpen(false);
+                }}
+                className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors"
+              >
+                친구 추가
+              </button>
+            )}
+            {/* 차단 아닌 상태 */}
+            {data.blockYn === "N" ? (
+              <button
+                onClick={() => {
+                  console.log("test23");
+                  console.log("함수 존재?", blockFriendBtnClick); // ← 이거 추가!
+                  console.log("함수 타입?", typeof blockFriendBtnClick); // ← 이거도!
+                  console.log("data.userNo?", data.userNo); // ← 이것도!
+                  blockFriendBtnClick(data.userNo, "Y");
+                  setIsMenuOpen(false);
+                }}
+                className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors"
+              >
+                차단
+              </button>
+            ) : (
+              // 차단 상태
+              <button
+                onClick={() => {
+                  blockFriendBtnClick(data.userNo, "N");
+                  setIsMenuOpen(false);
+                }}
+                className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors"
+              >
+                차단 해제
+              </button>
+            )}
             <button
               onClick={() => {
                 onOpenChat(data.userNo);

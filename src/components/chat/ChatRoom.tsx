@@ -126,7 +126,6 @@ const ChatRoom = (props: Props) => {
   // }, [roomId, queryClient]);
 
   useEffect(() => {
-    console.log("apiSearchChatRoomData", apiSearchChatRoomData);
     scrollToBottom();
   }, [apiSearchChatRoomData]);
 

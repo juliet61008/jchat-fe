@@ -14,7 +14,7 @@ const LoginUserHead = (props: Props) => {
   const { initialUser } = props;
 
   const router = useRouter();
-  console.log("initialUser", initialUser);
+
   const { data } = useQuery({
     queryKey: ["user"],
     queryFn: getUser,
