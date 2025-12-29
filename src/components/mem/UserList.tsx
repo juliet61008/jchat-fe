@@ -14,7 +14,6 @@ const UserList = () => {
     refetchOnMount: "always",
     staleTime: 5 * 60 * 1000,
   });
-  console.log("data", data);
 
   return (
     <>
@@ -30,18 +29,11 @@ const UserList = () => {
               data.friendList.map((obj, idx) => (
                 <UserCard
                   key={idx}
-                  userId={obj.id}
-                  nickname={obj.name}
+                  data={obj}
                   onAddFriend={() => {}}
                   onOpenChat={() => {}}
                 />
               ))}
-            {/* <UserCard
-              userId="2"
-              nickname="테스트유저2"
-              onAddFriend={() => {}}
-              onOpenChat={() => {}}
-            /> */}
           </div>
         </div>
       </div>
