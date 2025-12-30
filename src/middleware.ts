@@ -12,9 +12,10 @@ export async function middleware(request: NextRequest) {
   if (refreshToken && isTokenValid(refreshToken)) {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/refresh`,
+        `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/refreshToken`,
         {
           method: "POST",
+          credentials: "include",
           headers: {
             Cookie: `refreshToken=${refreshToken}`,
           },
