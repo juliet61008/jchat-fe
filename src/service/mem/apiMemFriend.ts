@@ -21,14 +21,14 @@ export const apiSearchFriendList = async (): Promise<ISearchFriendResDto> => {
 };
 
 /**
- * 유저 관계 추가
+ * 유저 관계 변경
  * @returns
  */
-export const apiInsertFriend = async (
+export const apiMergeFriend = async (
   params: IMergeFriendReqDto
 ): Promise<IMergeFriendResDto> => {
   const res = await api.post(
-    `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/mem/friend/insert`,
+    `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/mem/friend/merge`,
     params
   );
 
