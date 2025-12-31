@@ -26,7 +26,7 @@ const page = async (params: IProps) => {
 
   const queryClient = new QueryClient();
 
-  const res = await queryClient.fetchQuery<ISearchChatRoomResDto>({
+  const res = await queryClient.prefetchQuery<ISearchChatRoomResDto>({
     queryKey: ["apiSearchChatRoom", roomId],
     queryFn: async () => apiSearchChatRoom(roomId),
     staleTime: Infinity,
@@ -34,12 +34,7 @@ const page = async (params: IProps) => {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <ChatRoom
-        user={user}
-        roomId={roomId}
-        roomName={""}
-        participantCount={res.chatRoomUserList.length}
-      />
+      <ChatRoom user={user} roomId={roomId} />
     </HydrationBoundary>
   );
 };

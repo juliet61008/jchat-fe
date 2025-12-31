@@ -7,10 +7,20 @@
  */
 export interface ISearchChatRoomResDto {
   roomId: number; // 채팅방번호
+  chatRoom: IChatRoom; // 채팅방 기본 정보
   chatRoomUserList: IChatRoomUser[]; // 채팅방 유저 DTO
   chatRoomMsgList: IChatRoomMsg[]; // 채팅방 메세지 DTO
 }
 
+/**
+ * 채팅방 기본 정보 REQ DTO
+ */
+export interface IChatRoom {
+  roomId: number; // 채팅방 번호
+  roomName: string; // 채팅방 이름
+  delYn: "Y" | "N"; // 삭제 여부
+  roomCd: string; // ??
+}
 /**
  * 채팅방 유저 DTO
  */

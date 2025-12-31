@@ -19,19 +19,17 @@ import { useEffect, useRef, useState } from "react";
 interface Props {
   user: IJwtPayLoad;
   roomId: number;
-  roomName: string;
-  participantCount: number;
 }
 
 const ChatRoom = (props: Props) => {
-  const { user, roomId, roomName, participantCount } = props;
+  const { user, roomId } = props;
 
   // const [messages, setMessages] = useState<IChatRoomMsg[]>([]);
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // 소켓 연결
   const [connected, setConnected] = useState(false);
-  // 클아이언트
+  // 클라이언트
   const clientRef = useRef<Client | null>(null);
   const queryClient = useQueryClient();
 
@@ -75,11 +73,11 @@ const ChatRoom = (props: Props) => {
         createTm: Date.now().toString(),
       };
 
-      if (clientRef.current && connected && inputValue) {
+      if (clientRef.current && clientRef?.current?.connected && inputValue) {
         const chatSendParams: ISendMsgReqDto = {
           tempId: tempId,
           roomId: roomId,
-          roomName: "테스트",
+          roomName: apiSearchChatRoomData?.chatRoom.roomName ?? "",
           msgContent: inputValue,
         };
 
@@ -109,6 +107,12 @@ const ChatRoom = (props: Props) => {
     }
   };
 
+  useEffect(() => {
+    if (!apiSearchChatRoomLoading) {
+      messagesEndRef.current?.scrollIntoView();
+    }
+  }, [apiSearchChatRoomLoading]);
+
   // WebSocket으로 받은 메시지를 React Query 캐시에 추가
   // useEffect(() => {
   //   const handleNewMessage = (newMsg: Message) => {
@@ -125,15 +129,22 @@ const ChatRoom = (props: Props) => {
   //   return () => socket.off('message', handleNewMessage);
   // }, [roomId, queryClient]);
 
+  // 주석이유 : 받을때도 내려감
+  // useEffect(() => {
+  //   scrollToBottom();
+  // }, [apiSearchChatRoomData]);
+
   useEffect(() => {
-    scrollToBottom();
+    console.log("apiSearchChatRoomData", apiSearchChatRoomData);
   }, [apiSearchChatRoomData]);
 
   useEffect(() => {
     const stompClient = new Client({
       brokerURL: "ws://localhost:8080/ws",
+      heartbeatIncoming: 10000, // 10초마다 서버에서 받기
+      heartbeatOutgoing: 10000, // 10초마다 서버로 보내기
+      reconnectDelay: 5000, // 재연결 시도
       onConnect: () => {
-        console.log("연결됨");
         setConnected(true); // 콜백 안이라 괜찮음
         queryClient.setQueryData(
           ["apiSearchChatRoom", roomId],
@@ -141,12 +152,12 @@ const ChatRoom = (props: Props) => {
             ...old,
             chatRoomMsgList: [
               ...(old?.chatRoomMsgList ?? []),
-              {
-                roomId: roomId,
-                msgId: `T${randomUUID}`,
-                sndName: "알림",
-                msgContent: "연결됨",
-              },
+              // {
+              //   roomId: roomId,
+              //   msgId: `T${randomUUID}`,
+              //   sndName: "알림",
+              //   msgContent: "연결됨",
+              // },
             ],
           })
         );
@@ -203,6 +214,13 @@ const ChatRoom = (props: Props) => {
 
         stompClient.subscribe(`/topic/chat/send/${roomId}`, (message) => {
           const res: ISendMsgResDto = JSON.parse(message.body);
+          // 새 매새지 user가 본인이면
+          if (res.chatRoomMsg.sndUserNo === user.userNo) {
+            // 스크롤 바닥으로 보내기
+            scrollToBottom();
+          }
+
+          // 메세지큐 데이터 삽입
           messageQueue.push(res);
           processQueue();
         });
@@ -213,6 +231,17 @@ const ChatRoom = (props: Props) => {
       },
       onStompError: (frame) => {
         console.error("에러:", frame);
+      },
+      // 비정상적인 close
+      onWebSocketClose: () => {
+        // 연결상태
+        setConnected(false);
+        // 네트워크 끊김 시에만 재연결 시도
+        console.log("연결 끊김, 5초 후 재연결 시도...");
+        if (stompClient.state !== 0) {
+          // 상태 확인
+          setTimeout(() => stompClient.activate(), 5000);
+        }
       },
     });
 
@@ -232,9 +261,23 @@ const ChatRoom = (props: Props) => {
           {/* 헤더 */}
           <div className="border-b bg-card px-4 py-3 flex items-center justify-between flex-shrink-0">
             <div>
-              <h2 className="font-semibold text-lg">{roomName}</h2>
+              <h2 className="font-semibold text-lg">
+                {apiSearchChatRoomData?.chatRoom.roomName ||
+                  ((apiSearchChatRoomData?.chatRoomUserList.length ?? 0) > 3
+                    ? apiSearchChatRoomData?.chatRoomUserList
+                        .filter((obj, idx) => idx < 2)
+                        .map((obj) => obj.name)
+                        .join(",") +
+                      ` 외 ${
+                        (apiSearchChatRoomData?.chatRoomUserList.length ?? 3) -
+                        3
+                      } 명`
+                    : apiSearchChatRoomData?.chatRoomUserList
+                        .map((obj) => obj.name)
+                        .join(", "))}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                {participantCount}명
+                {apiSearchChatRoomData?.chatRoomUserList.length}명
               </p>
             </div>
           </div>
