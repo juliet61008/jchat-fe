@@ -5,11 +5,11 @@ import Loading from "@/components/common/Loading";
 import { IJwtPayLoad } from "@/interface/auth/interfaceJwt";
 import {
   IChatRoomMsg,
-  ISearchChatRoomResDto,
+  ISearchChatRoomDtlResDto,
   ISendMsgReqDto,
   ISendMsgResDto,
 } from "@/interface/chat/interfaceChat";
-import { apiSearchChatRoom } from "@/service/chat/apiChat";
+import { apiSearchChatRoomDtl } from "@/service/chat/apiChat";
 import { Client } from "@stomp/stompjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "crypto";
@@ -38,12 +38,14 @@ const ChatRoom = (props: Props) => {
    */
 
   // 메시지 (클라이언트에서만 fetch, 실시간)
-  const { data: apiSearchChatRoomData, isLoading: apiSearchChatRoomLoading } =
-    useQuery<ISearchChatRoomResDto>({
-      queryKey: ["apiSearchChatRoom", roomId],
-      queryFn: () => apiSearchChatRoom(roomId),
-      staleTime: Infinity,
-    });
+  const {
+    data: apiSearchChatRoomDtlData,
+    isLoading: apiSearchChatRoomDtlLoading,
+  } = useQuery<ISearchChatRoomDtlResDto>({
+    queryKey: ["apiSearchChatRoomDtl", roomId],
+    queryFn: () => apiSearchChatRoomDtl(roomId),
+    staleTime: Infinity,
+  });
 
   /**
    * 함수 선언부
@@ -77,13 +79,13 @@ const ChatRoom = (props: Props) => {
         const chatSendParams: ISendMsgReqDto = {
           tempId: tempId,
           roomId: roomId,
-          roomName: apiSearchChatRoomData?.chatRoom.roomName ?? "",
+          roomName: apiSearchChatRoomDtlData?.chatRoom.roomName ?? "",
           msgContent: inputValue,
         };
 
         queryClient.setQueryData(
-          ["apiSearchChatRoom", roomId],
-          (old: ISearchChatRoomResDto) => ({
+          ["apiSearchChatRoomDtl", roomId],
+          (old: ISearchChatRoomDtlResDto) => ({
             ...old,
             chatRoomMsgList: [...(old?.chatRoomMsgList ?? []), newMessage],
           })
@@ -108,16 +110,16 @@ const ChatRoom = (props: Props) => {
   };
 
   useEffect(() => {
-    if (!apiSearchChatRoomLoading) {
+    if (!apiSearchChatRoomDtlLoading) {
       messagesEndRef.current?.scrollIntoView();
     }
-  }, [apiSearchChatRoomLoading]);
+  }, [apiSearchChatRoomDtlLoading]);
 
   // WebSocket으로 받은 메시지를 React Query 캐시에 추가
   // useEffect(() => {
   //   const handleNewMessage = (newMsg: Message) => {
   //     queryClient.setQueryData(
-  //       ["apiSearchChatRoom", roomId],
+  //       ["apiSearchChatRoomDtl", roomId],
   //       (old: any) => ({
   //         ...old,
   //         chatRoomMsgList: [...(old?.chatRoomMsgList ?? []), newMsg]
@@ -132,11 +134,11 @@ const ChatRoom = (props: Props) => {
   // 주석이유 : 받을때도 내려감
   // useEffect(() => {
   //   scrollToBottom();
-  // }, [apiSearchChatRoomData]);
+  // }, [apiSearchChatRoomDtlData]);
 
   useEffect(() => {
-    console.log("apiSearchChatRoomData", apiSearchChatRoomData);
-  }, [apiSearchChatRoomData]);
+    console.log("apiSearchChatRoomDtlData", apiSearchChatRoomDtlData);
+  }, [apiSearchChatRoomDtlData]);
 
   useEffect(() => {
     const stompClient = new Client({
@@ -147,8 +149,8 @@ const ChatRoom = (props: Props) => {
       onConnect: () => {
         setConnected(true); // 콜백 안이라 괜찮음
         queryClient.setQueryData(
-          ["apiSearchChatRoom", roomId],
-          (old: ISearchChatRoomResDto) => ({
+          ["apiSearchChatRoomDtl", roomId],
+          (old: ISearchChatRoomDtlResDto) => ({
             ...old,
             chatRoomMsgList: [
               ...(old?.chatRoomMsgList ?? []),
@@ -174,8 +176,8 @@ const ChatRoom = (props: Props) => {
           while (messageQueue.length > 0) {
             const res = messageQueue.shift()!;
 
-            queryClient.setQueryData<ISearchChatRoomResDto>(
-              ["apiSearchChatRoom", roomId],
+            queryClient.setQueryData<ISearchChatRoomDtlResDto>(
+              ["apiSearchChatRoomDtl", roomId],
               (old) => {
                 if (!old) return old;
 
@@ -255,38 +257,41 @@ const ChatRoom = (props: Props) => {
 
   return (
     <>
-      <Loading isLoading={apiSearchChatRoomLoading} text="채팅방 불러오는중" />
+      <Loading
+        isLoading={apiSearchChatRoomDtlLoading}
+        text="채팅방 불러오는중"
+      />
       <div className="flex items-center justify-center min-h-screen bg-background p-0 md:p-4">
         <div className="flex flex-col w-full h-[100dvh] md:h-[600px] md:max-w-md md:rounded-lg md:border md:shadow-lg bg-card overflow-hidden">
           {/* 헤더 */}
           <div className="border-b bg-card px-4 py-3 flex items-center justify-between flex-shrink-0">
             <div>
               <h2 className="font-semibold text-lg">
-                {apiSearchChatRoomData?.chatRoom.roomName ||
-                  ((apiSearchChatRoomData?.chatRoomUserList.length ?? 0) > 3
-                    ? apiSearchChatRoomData?.chatRoomUserList
+                {apiSearchChatRoomDtlData?.chatRoom.roomName ||
+                  ((apiSearchChatRoomDtlData?.chatRoomUserList.length ?? 0) > 3
+                    ? apiSearchChatRoomDtlData?.chatRoomUserList
                         .filter((obj, idx) => idx < 2)
                         .map((obj) => obj.name)
                         .join(",") +
                       ` 외 ${
-                        (apiSearchChatRoomData?.chatRoomUserList.length ?? 3) -
-                        3
+                        (apiSearchChatRoomDtlData?.chatRoomUserList.length ??
+                          3) - 3
                       } 명`
-                    : apiSearchChatRoomData?.chatRoomUserList
+                    : apiSearchChatRoomDtlData?.chatRoomUserList
                         .map((obj) => obj.name)
                         .join(", "))}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {apiSearchChatRoomData?.chatRoomUserList.length}명
+                {apiSearchChatRoomDtlData?.chatRoomUserList.length}명
               </p>
             </div>
           </div>
 
           {/* 메시지 목록 - 부드러운 스크롤바 */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 scrollbar-smooth">
-            {apiSearchChatRoomData &&
-              apiSearchChatRoomData.chatRoomMsgList &&
-              apiSearchChatRoomData.chatRoomMsgList.map(
+            {apiSearchChatRoomDtlData &&
+              apiSearchChatRoomDtlData.chatRoomMsgList &&
+              apiSearchChatRoomDtlData.chatRoomMsgList.map(
                 (rommMsgObj, rommMsgIdx) => (
                   <div
                     key={rommMsgIdx}

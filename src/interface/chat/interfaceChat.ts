@@ -3,9 +3,20 @@
  */
 
 /**
- * 채팅방 조회 REQ DTO
+ * 채팅방 리스트 조회 RES DTO
  */
-export interface ISearchChatRoomResDto {
+export interface ISearchChatRoomListResDto {
+  roomId: number; // 채팅방번호
+  roomName: string; // 채팅방 이름
+  expoRoomName: string; // 노출 채팅방 이름
+  roomCd: string; // 채팅방 코드
+  likeYn: string; // 츨겨찾기 여부
+}
+
+/**
+ * 채팅방 디테일 조회 REQ DTO
+ */
+export interface ISearchChatRoomDtlResDto {
   roomId: number; // 채팅방번호
   chatRoom: IChatRoom; // 채팅방 기본 정보
   chatRoomUserList: IChatRoomUser[]; // 채팅방 유저 DTO
