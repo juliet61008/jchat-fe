@@ -25,7 +25,7 @@ export interface ISearchChatRoomDtlResDto {
   chatRoomMsgList: IChatRoomMsg[]; // 채팅방 메세지 DTO
 }
 
-export type TSearchChatRoomResDto = IApiResponse<ISearchChatRoomResData>;
+export type TSearchChatRoomDtlResDto = IApiResponse<ISearchChatRoomDtlResDto>;
 
 /**
  * 채팅방 기본 정보 REQ DTO

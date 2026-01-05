@@ -8,7 +8,7 @@ import {
   ISearchChatRoomDtlResDto,
   ISendMsgReqDto,
   ISendMsgResDto,
-  TSearchChatRoomResDto,
+  TSearchChatRoomDtlResDto,
 } from "@/interface/chat/interfaceChat";
 import { apiSearchChatRoomDtl } from "@/service/chat/apiChat";
 import { Client } from "@stomp/stompjs";
@@ -42,7 +42,7 @@ const ChatRoom = (props: Props) => {
   const {
     data: apiSearchChatRoomDtlData,
     isLoading: apiSearchChatRoomDtlLoading,
-  } = useQuery<ISearchChatRoomDtlResDto>({
+  } = useQuery<TSearchChatRoomDtlResDto, Error, ISearchChatRoomDtlResDto>({
     queryKey: ["apiSearchChatRoomDtl", roomId],
     queryFn: () => apiSearchChatRoomDtl(roomId),
     staleTime: Infinity,
