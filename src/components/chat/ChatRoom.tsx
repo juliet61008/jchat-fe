@@ -45,6 +45,11 @@ const ChatRoom = (props: Props) => {
   } = useQuery<TSearchChatRoomDtlResDto, Error, ISearchChatRoomDtlResDto>({
     queryKey: ["apiSearchChatRoomDtl", roomId],
     queryFn: () => apiSearchChatRoomDtl(roomId),
+    select: (res) => {
+      if (res.code !== 0) throw new Error();
+
+      return res.data;
+    },
     staleTime: Infinity,
   });
 

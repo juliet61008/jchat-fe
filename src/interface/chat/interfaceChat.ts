@@ -5,15 +5,24 @@
 import { IApiResponse } from "@/interface/common/interfaceApiResponse";
 
 /**
- * 채팅방 리스트 조회 RES DTO
+ * 채팅방 리스트 조회 RES Data
  */
-export interface ISearchChatRoomListResDto {
+export interface ISearchChatRoomListResData {
   roomId: number; // 채팅방번호
   roomName: string; // 채팅방 이름
   expoRoomName: string; // 노출 채팅방 이름
   roomCd: string; // 채팅방 코드
   likeYn: string; // 츨겨찾기 여부
+  lastMsgContent: string; // 마지막메세지 내용
+  lastMsgCreateTm: string; // 마지막메세지 생성일시
 }
+
+/**
+ * 채팅방 리스트 조회 RES DTO
+ */
+export type TSearchChatRoomListResDto = IApiResponse<
+  ISearchChatRoomListResData[]
+>;
 
 /**
  * 채팅방 디테일 조회 REQ DTO

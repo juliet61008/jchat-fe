@@ -1,6 +1,6 @@
 import {
-  ISearchChatRoomListResDto,
   TSearchChatRoomDtlResDto,
+  TSearchChatRoomListResDto,
 } from "@/interface/chat/interfaceChat";
 
 import { api } from "@/lib/fetchExtended";
@@ -9,7 +9,7 @@ import { api } from "@/lib/fetchExtended";
  * 채팅방 리스트 정보 조회
  */
 export const apiSearchChatRoomList =
-  async (): Promise<ISearchChatRoomListResDto> => {
+  async (): Promise<TSearchChatRoomListResDto> => {
     const res = await api.get(
       `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/chat/room`
     );

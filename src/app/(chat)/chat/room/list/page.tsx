@@ -2,6 +2,8 @@
  * 채팅방 리스트 서버컴포넌트
  */
 
+import ChatRoomList from "@/components/chat/ChatRoomList";
+import { TSearchChatRoomListResDto } from "@/interface/chat/interfaceChat";
 import { apiSearchChatRoomList } from "@/service/chat/apiChat";
 import {
   dehydrate,
@@ -12,15 +14,14 @@ import {
 const page = async () => {
   const queryClient = new QueryClient();
 
-  await queryClient.prefetchQuery({
-    queryKey: [`chatRoomList`],
+  await queryClient.prefetchQuery<TSearchChatRoomListResDto>({
+    queryKey: ["chatRoomList"],
     queryFn: apiSearchChatRoomList,
   });
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      {/* 클라이언트컴포넌트영역 */}
-      <></>
+      <ChatRoomList />
     </HydrationBoundary>
   );
 };
