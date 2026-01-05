@@ -3,16 +3,26 @@
 import BackHeader from "@/components/common/BackHeader";
 import Loading from "@/components/common/Loading";
 import UserCard from "@/components/mem/UserCard";
-import { ISearchFriendResDto } from "@/interface/mem/interfaceMemFriend";
+import {
+  ISearchFriendResData,
+  TSearchFriendResDto,
+} from "@/interface/mem/interfaceMemFriend";
 import { apiSearchFriendList } from "@/service/mem/apiMemFriend";
 import { useQuery } from "@tanstack/react-query";
 
 const UserList = () => {
-  const { data, isLoading, isFetching } = useQuery<ISearchFriendResDto>({
+  const { data, isLoading, isFetching } = useQuery<
+    TSearchFriendResDto,
+    Error,
+    ISearchFriendResData
+  >({
     queryKey: ["rcmUserList"],
     queryFn: () => apiSearchFriendList(),
     refetchOnMount: "always",
     staleTime: 5 * 60 * 1000,
+    select: (res) => {
+      return res.data;
+    },
   });
 
   return (

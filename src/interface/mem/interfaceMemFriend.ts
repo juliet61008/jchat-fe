@@ -1,3 +1,5 @@
+import { IApiResponse } from "@/interface/common/interfaceApiResponse";
+
 /**
  * other 유저 공통
  */
@@ -13,12 +15,17 @@ export interface IComOtherUser {
 }
 
 /**
- * 친구목록조회 RES DTO
+ * 친구목록조회 RES DATA
  */
-export interface ISearchFriendResDto {
+export interface ISearchFriendResData {
   myUserNo?: number;
   friendList: IComOtherUser[];
 }
+
+/**
+ * 친구목록조회 RES DTO
+ */
+export type TSearchFriendResDto = IApiResponse<ISearchFriendResData>;
 
 /**
  * 친구추가 요청 DTO
@@ -31,8 +38,13 @@ export interface IMergeFriendReqDto {
 }
 
 /**
- * 친구추가 응답 DTO
+ * 유저관계변경 응답 DTO Data
  */
-export interface IMergeFriendResDto {
+export interface IMergeFriendResData {
   succYn: "Y" | "N"; // 성공여부
 }
+
+/**
+ * 유저관계변경 응답 DTO Data
+ */
+export type TMergeFriendResDto = IApiResponse<IMergeFriendResData>;

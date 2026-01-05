@@ -61,7 +61,7 @@ const Login = () => {
   };
 
   /**
-   *
+   * 엔터 keydown 이벤트
    */
   const handlePasswordInputKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>
@@ -124,7 +124,6 @@ const Login = () => {
     else {
       alert("로그인 불가");
     }
-
     setIsLoading(false);
   };
 

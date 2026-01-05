@@ -1,3 +1,5 @@
+import { IApiResponse } from "@/interface/common/interfaceApiResponse";
+
 // 토큰 DTO
 interface ITokenDto {
   accessToken: string; // accessToken
@@ -19,8 +21,10 @@ export interface IAuthLoginReqDto {
   password: string; // 패스워드
 }
 
-// 로그인 인증 응답 DTO
-export interface IAuthLoginResDto extends ITokenDto {
-  code: number; // 결과
+// 로그인 인증 응답 Data
+export interface IAuthLoginResDtoData extends ITokenDto {
   userInfoDto: IUserInfoDto; // 유저정보DTO
 }
+
+// 로그인 인증 응답 DTO
+export type TAuthLoginResDto = IApiResponse<IAuthLoginResDtoData>;

@@ -149,7 +149,11 @@ const RegisterUser = () => {
 
       if (!res) throw new Error("회원가입에 실패하였습니다");
 
-      if (res.succYn !== "Y") throw new Error("회원가입에 실패하였습니다");
+      if (res.code !== 0) throw new Error("회원가입에 실패하였습니다");
+
+      const data = res.data;
+
+      if (data.succYn !== "Y") throw new Error("회원가입에 실패하였습니다");
 
       alert("회원가입 완료하였습니다");
 

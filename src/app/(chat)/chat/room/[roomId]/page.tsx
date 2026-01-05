@@ -1,6 +1,8 @@
 import ChatRoom from "@/components/chat/ChatRoom";
-import { ISearchChatRoomDtlResDto } from "@/interface/chat/interfaceChat";
-import { apiSearchChatRoomDtl } from "@/service/chat/apiChat";
+
+import { TSearchChatRoomResDto } from "@/interface/chat/interfaceChat";
+import { apiSearchChatRoom } from "@/service/chat/apiChat";
+
 import { getUser } from "@/utils/mem/userUtil";
 import {
   dehydrate,

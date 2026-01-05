@@ -8,6 +8,7 @@ import {
   ISearchChatRoomDtlResDto,
   ISendMsgReqDto,
   ISendMsgResDto,
+  TSearchChatRoomResDto,
 } from "@/interface/chat/interfaceChat";
 import { apiSearchChatRoomDtl } from "@/service/chat/apiChat";
 import { Client } from "@stomp/stompjs";

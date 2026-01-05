@@ -1,7 +1,7 @@
 import {
   IMergeFriendReqDto,
-  IMergeFriendResDto,
-  ISearchFriendResDto,
+  TMergeFriendResDto,
+  TSearchFriendResDto,
 } from "@/interface/mem/interfaceMemFriend";
 import { api } from "@/lib/fetchExtended";
 
@@ -9,7 +9,7 @@ import { api } from "@/lib/fetchExtended";
  * 유저 리스트 조회
  * @returns
  */
-export const apiSearchFriendList = async (): Promise<ISearchFriendResDto> => {
+export const apiSearchFriendList = async (): Promise<TSearchFriendResDto> => {
   const res = await api.get(
     `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/mem/friend/list`,
     {
@@ -26,7 +26,7 @@ export const apiSearchFriendList = async (): Promise<ISearchFriendResDto> => {
  */
 export const apiMergeFriend = async (
   params: IMergeFriendReqDto
-): Promise<IMergeFriendResDto> => {
+): Promise<TMergeFriendResDto> => {
   const res = await api.post(
     `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/mem/friend/merge`,
     params
