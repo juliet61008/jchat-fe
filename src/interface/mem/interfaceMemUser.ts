@@ -1,3 +1,5 @@
+import { IApiResponse } from "@/interface/common/interfaceApiResponse";
+
 /**
  * 회원가입 요청 DTO
  */
@@ -11,9 +13,14 @@ export interface IRegisterUserReqDto {
 }
 
 /**
- * 회원가입 응답 DTO
+ * 회원가입 응답 DATA
  */
-export interface IRegisterUserResDto {
+export interface IRegisterUserResData {
   id: string; // 아이디
   succYn: "Y" | "N"; // 성공여부
 }
+
+/**
+ * 회원가입 응답 DTO
+ */
+export type TRegisterUserResDto = IApiResponse<IRegisterUserResData>;

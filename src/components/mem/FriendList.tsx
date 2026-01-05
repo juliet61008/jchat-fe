@@ -6,7 +6,8 @@ import UserCard from "@/components/mem/UserCard";
 import { IJwtPayLoad } from "@/interface/auth/interfaceJwt";
 import {
   IMergeFriendReqDto,
-  ISearchFriendResDto,
+  ISearchFriendResData,
+  TSearchFriendResDto,
 } from "@/interface/mem/interfaceMemFriend";
 import {
   apiMergeFriend,
@@ -72,18 +73,35 @@ const FriendList = (props: Props) => {
   const queryClient = useQueryClient();
 
   // ============ useQuery ============ //
-  const { data, isLoading, isFetching } = useQuery<ISearchFriendResDto>({
+  const { data, isLoading, isFetching } = useQuery<
+    TSearchFriendResDto,
+    Error,
+    ISearchFriendResData
+  >({
     queryKey: [`friendList_${user.userNo}`],
     queryFn: () => apiSearchFriendList(),
     refetchOnMount: "always",
     staleTime: 5 * 60 * 1000,
+    select: (res) => {
+      if (res.code !== 0) {
+        throw new Error("에러남");
+      }
+
+      return res.data;
+    },
   });
   // ============ useQuery ============ //
 
   // ============ useMutation ============ //
   const mergeFriendMutation = useMutation({
     mutationFn: apiMergeFriend,
-    onSuccess: (data) => {
+    onSuccess: (res) => {
+      if (res.code !== 0) {
+        throw new Error();
+      }
+
+      const data = res.data;
+
       if (data.succYn === "Y") {
         queryClient.invalidateQueries({
           queryKey: [`friendList_${user.userNo}`],

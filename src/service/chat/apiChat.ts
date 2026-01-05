@@ -1,4 +1,4 @@
-import { ISearchChatRoomResDto } from "@/interface/chat/interfaceChat";
+import { TSearchChatRoomResDto } from "@/interface/chat/interfaceChat";
 import { api } from "@/lib/fetchExtended";
 
 /**
@@ -8,9 +8,9 @@ import { api } from "@/lib/fetchExtended";
  */
 export const apiSearchChatRoom = async (
   roomId: number
-): Promise<ISearchChatRoomResDto> => {
+): Promise<TSearchChatRoomResDto> => {
   const res = await api.get(
-    `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/chat/searchChatRoom/${roomId}`,
+    `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/chat/room/${roomId}`,
     {
       method: "GET",
       credentials: "include",

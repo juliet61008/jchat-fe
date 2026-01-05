@@ -5,9 +5,10 @@ import Loading from "@/components/common/Loading";
 import { IJwtPayLoad } from "@/interface/auth/interfaceJwt";
 import {
   IChatRoomMsg,
-  ISearchChatRoomResDto,
+  ISearchChatRoomResData,
   ISendMsgReqDto,
   ISendMsgResDto,
+  TSearchChatRoomResDto,
 } from "@/interface/chat/interfaceChat";
 import { apiSearchChatRoom } from "@/service/chat/apiChat";
 import { Client } from "@stomp/stompjs";
@@ -39,10 +40,17 @@ const ChatRoom = (props: Props) => {
 
   // 메시지 (클라이언트에서만 fetch, 실시간)
   const { data: apiSearchChatRoomData, isLoading: apiSearchChatRoomLoading } =
-    useQuery<ISearchChatRoomResDto>({
+    useQuery<TSearchChatRoomResDto, Error, ISearchChatRoomResData>({
       queryKey: ["apiSearchChatRoom", roomId],
       queryFn: () => apiSearchChatRoom(roomId),
       staleTime: Infinity,
+      select: (res) => {
+        if (res.code !== 0) {
+          throw new Error();
+        }
+
+        return res.data;
+      },
     });
 
   /**
@@ -83,7 +91,7 @@ const ChatRoom = (props: Props) => {
 
         queryClient.setQueryData(
           ["apiSearchChatRoom", roomId],
-          (old: ISearchChatRoomResDto) => ({
+          (old: ISearchChatRoomResData) => ({
             ...old,
             chatRoomMsgList: [...(old?.chatRoomMsgList ?? []), newMessage],
           })
@@ -135,10 +143,6 @@ const ChatRoom = (props: Props) => {
   // }, [apiSearchChatRoomData]);
 
   useEffect(() => {
-    console.log("apiSearchChatRoomData", apiSearchChatRoomData);
-  }, [apiSearchChatRoomData]);
-
-  useEffect(() => {
     const stompClient = new Client({
       brokerURL: "ws://localhost:8080/ws",
       heartbeatIncoming: 10000, // 10초마다 서버에서 받기
@@ -148,7 +152,7 @@ const ChatRoom = (props: Props) => {
         setConnected(true); // 콜백 안이라 괜찮음
         queryClient.setQueryData(
           ["apiSearchChatRoom", roomId],
-          (old: ISearchChatRoomResDto) => ({
+          (old: ISearchChatRoomResData) => ({
             ...old,
             chatRoomMsgList: [
               ...(old?.chatRoomMsgList ?? []),
@@ -174,7 +178,7 @@ const ChatRoom = (props: Props) => {
           while (messageQueue.length > 0) {
             const res = messageQueue.shift()!;
 
-            queryClient.setQueryData<ISearchChatRoomResDto>(
+            queryClient.setQueryData<ISearchChatRoomResData>(
               ["apiSearchChatRoom", roomId],
               (old) => {
                 if (!old) return old;

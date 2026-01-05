@@ -2,15 +2,19 @@
  * 채팅 인터페이스
  */
 
+import { IApiResponse } from "@/interface/common/interfaceApiResponse";
+
 /**
  * 채팅방 조회 REQ DTO
  */
-export interface ISearchChatRoomResDto {
+export interface ISearchChatRoomResData {
   roomId: number; // 채팅방번호
   chatRoom: IChatRoom; // 채팅방 기본 정보
   chatRoomUserList: IChatRoomUser[]; // 채팅방 유저 DTO
   chatRoomMsgList: IChatRoomMsg[]; // 채팅방 메세지 DTO
 }
+
+export type TSearchChatRoomResDto = IApiResponse<ISearchChatRoomResData>;
 
 /**
  * 채팅방 기본 정보 REQ DTO

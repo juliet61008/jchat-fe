@@ -1,5 +1,5 @@
 import ChatRoom from "@/components/chat/ChatRoom";
-import { ISearchChatRoomResDto } from "@/interface/chat/interfaceChat";
+import { TSearchChatRoomResDto } from "@/interface/chat/interfaceChat";
 import { apiSearchChatRoom } from "@/service/chat/apiChat";
 import { getUser } from "@/utils/mem/userUtil";
 import {
@@ -26,7 +26,7 @@ const page = async (params: IProps) => {
 
   const queryClient = new QueryClient();
 
-  const res = await queryClient.prefetchQuery<ISearchChatRoomResDto>({
+  await queryClient.prefetchQuery<TSearchChatRoomResDto>({
     queryKey: ["apiSearchChatRoom", roomId],
     queryFn: async () => apiSearchChatRoom(roomId),
     staleTime: Infinity,
