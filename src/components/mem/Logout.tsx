@@ -1,10 +1,13 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 const Logout = () => {
   const router = useRouter();
+
+  const queryClient = useQueryClient();
 
   const processing = async () => {
     const res = await fetch(
@@ -14,6 +17,12 @@ const Logout = () => {
         credentials: "include",
       }
     );
+
+    const fetchRes = await res.json();
+
+    if (fetchRes.code !== 0) {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    }
 
     if (res != null) router.replace("/");
   };
