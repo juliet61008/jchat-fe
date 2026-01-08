@@ -1,3 +1,9 @@
+// lib/fetchExtended.ts
+
+import { ITokenDto } from "@/interface/auth/interfaceAuthLogin";
+import { IApiResponse } from "@/interface/common/interfaceApiResponse";
+import { checkAuth, saveTokenServerAction } from "@/utils/auth/authUtil";
+
 interface FetchOptions extends RequestInit {
   skipRefresh?: boolean;
 }
@@ -20,53 +26,66 @@ export async function fetchExtended(
     });
   }
 
-  if (isServer) {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieStore = await cookies();
-      const accessToken = cookieStore.get("accessToken")?.value;
-      const refreshToken = cookieStore.get("refreshToken")?.value;
+  // 토큰 정보 get
+  const authResult = await checkAuth();
+  const accessToken = authResult.accessToken;
 
-      const cookieHeader = [];
-      if (accessToken) cookieHeader.push(`accessToken=${accessToken}`);
-      if (refreshToken) cookieHeader.push(`refreshToken=${refreshToken}`);
-
-      if (cookieHeader.length > 0) {
-        headers["Cookie"] = cookieHeader.join("; ");
-      }
-    } catch (error) {
-      console.warn("Cannot access cookies");
-    }
+  if (accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
   }
 
-  // skipRefresh 제거한 options 생성
   const { skipRefresh, ...fetchOptions } = options;
 
-  const response = await fetch(url, {
+  const response = await fetch(`${url}`, {
     ...fetchOptions,
     headers,
-    credentials: isServer ? "omit" : "include",
   });
 
   // 클라이언트에서만 자동 갱신
   if (!isServer && response.status === 401 && !skipRefresh) {
     console.log("Token expired, attempting refresh...");
 
-    const refreshResponse = await fetch(`${baseURL}/auth/refreshToken`, {
+    const refreshToken = authResult.refreshToken;
+
+    if (!refreshToken) {
+      console.error("No refresh token, redirecting to login...");
+      window.location.href = "/mem/login";
+      throw new Error("Authentication required");
+    }
+
+    const refreshRes = await fetch(`${baseURL}/auth/refresh`, {
       method: "POST",
-      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${refreshToken}`,
+      },
     });
 
-    if (refreshResponse.ok) {
-      console.log("Token refreshed, retrying original request...");
+    if (refreshRes.ok) {
+      const refreshData: IApiResponse<ITokenDto> = await refreshRes.json();
 
-      // 재귀 호출 시 skipRefresh: true 전달
+      if (refreshData.code !== 0) {
+        console.error("Refresh response invalid");
+        window.location.href = "/mem/login";
+        throw new Error("Token refresh failed");
+      }
+
+      const newAccessToken = refreshData.data?.accessToken;
+      const newRefreshToken = refreshData.data?.refreshToken;
+
+      if (!newAccessToken) {
+        throw new Error("No access token in refresh response");
+      }
+
+      await saveTokenServerAction(newAccessToken, newRefreshToken);
+
+      // 재귀 호출
       return fetchExtended(url, {
         ...options,
-        skipRefresh: true, // 무한 루프 방지
+        skipRefresh: true,
       });
     } else {
-      console.error("Refresh token expired, redirecting to login...");
+      console.error("Refresh failed");
       window.location.href = "/mem/login";
       throw new Error("Authentication required");
     }
@@ -75,7 +94,6 @@ export async function fetchExtended(
   return response;
 }
 
-// 편의 메서드
 export const api = {
   get: (url: string, options?: FetchOptions) =>
     fetchExtended(url, { ...options, method: "GET" }),
@@ -84,14 +102,21 @@ export const api = {
     fetchExtended(url, {
       ...options,
       method: "POST",
-      body: JSON.stringify(body),
+      body: body ? JSON.stringify(body) : undefined,
     }),
 
   put: (url: string, body?: any, options?: FetchOptions) =>
     fetchExtended(url, {
       ...options,
       method: "PUT",
-      body: JSON.stringify(body),
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+
+  patch: (url: string, body?: any, options?: FetchOptions) =>
+    fetchExtended(url, {
+      ...options,
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
     }),
 
   delete: (url: string, options?: FetchOptions) =>

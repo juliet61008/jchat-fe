@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IAuthLoginReqDto } from "@/interface/auth/interfaceAuthLogin";
-import { getAuthLogin } from "@/service/auth/apiAuthLogin";
+import { loginServerAction } from "@/utils/auth/authUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import React, { useRef, useState } from "react";
@@ -43,6 +43,15 @@ const Login = () => {
    * @param {React.ChangeEvent<HTMLInputElement>} e input 엘리멘트
    */
   const handleOnInputLogin = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // TODO 임시
+    // checkAuth().then((data) => {
+    //   console.log(
+    //     "accessToken : " +
+    //       data.accessToken +
+    //       ", refreshToken : " +
+    //       data.refreshToken
+    //   );
+    // });
     if (e) {
       switch (e.currentTarget.id) {
         case "id": {
@@ -101,7 +110,9 @@ const Login = () => {
       password: password,
     };
 
-    const res = await getAuthLogin(getAuthLoginReqDto);
+    // TODO 서버액션으로 변경중
+    // const res = await getAuthLogin(getAuthLoginReqDto);
+    const res = await loginServerAction(getAuthLoginReqDto);
 
     // 정상 인증
     if (res.code === 0) {

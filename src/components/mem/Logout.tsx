@@ -1,5 +1,6 @@
 "use client";
 
+import { logoutServerAction } from "@/utils/auth/authUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -23,6 +24,8 @@ const Logout = () => {
     if (fetchRes.code !== 0) {
       queryClient.invalidateQueries({ queryKey: ["user"] });
     }
+
+    await logoutServerAction();
 
     if (res != null) router.replace("/");
   };
