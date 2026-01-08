@@ -1,7 +1,7 @@
 import { IApiResponse } from "@/interface/common/interfaceApiResponse";
 
 // 토큰 DTO
-interface ITokenDto {
+export interface ITokenDto {
   accessToken: string; // accessToken
   refreshToken: string; // refreshToken
 }

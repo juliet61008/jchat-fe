@@ -1,3 +1,5 @@
+import { ITokenDto } from "@/interface/auth/interfaceAuthLogin";
+import { IApiResponse } from "@/interface/common/interfaceApiResponse";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
@@ -6,37 +8,54 @@ export async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get("accessToken")?.value;
   const refreshToken = request.cookies.get("refreshToken")?.value;
 
+  if (
+    (!accessToken || !isTokenValid(accessToken)) &&
+    (!refreshToken || !isTokenValid(refreshToken))
+  ) {
+    return NextResponse.next();
+  }
+
   if (accessToken && isTokenValid(accessToken)) {
     return NextResponse.next();
   }
+
   if (refreshToken && isTokenValid(refreshToken)) {
     try {
-      const response = await fetch(
+      const refreshRes = await fetch(
         `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/refreshToken`,
         {
           method: "POST",
           credentials: "include",
           headers: {
-            Cookie: `refreshToken=${refreshToken}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${refreshToken}`,
           },
         }
       );
 
-      if (response.ok) {
-        const setCookieHeader = response.headers.get("set-cookie");
+      if (refreshRes.ok) {
+        const refreshData: IApiResponse<ITokenDto> = await refreshRes.json();
+        if (refreshData.code !== 0) {
+          console.error("Refresh response invalid");
+          window.location.href = "/mem/login";
+          throw new Error("Token refresh failed");
+        }
 
-        // accessToken, refreshToken 파싱
-        const tokens = parseTokensFromSetCookie(setCookieHeader);
+        const newAccessToken = refreshData.data?.accessToken;
+        const newRefreshToken = refreshData.data?.refreshToken;
 
-        if (tokens.accessToken || tokens.refreshToken) {
+        if (newAccessToken || newRefreshToken) {
           const rewriteResponse = NextResponse.rewrite(request.url);
 
           // accessToken 설정
-          if (tokens.accessToken) {
-            const accessMaxAge = calculateMaxAge(tokens.accessToken);
-            rewriteResponse.cookies.set("accessToken", tokens.accessToken, {
+          if (newAccessToken) {
+            const accessMaxAge = calculateMaxAge(newAccessToken);
+            rewriteResponse.cookies.set("accessToken", newAccessToken, {
               httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
+              secure: process.env.NEXT_PUBLIC_COOKIE_SECURE === "true",
+              sameSite: (process.env.NEXT_PUBLIC_COOKIE_SAME_SITE || "lax") as
+                | "lax"
+                | "none",
               path: "/",
               maxAge: accessMaxAge,
             });
@@ -44,11 +63,14 @@ export async function middleware(request: NextRequest) {
           }
 
           // refreshToken 설정 (Rotation)
-          if (tokens.refreshToken) {
-            const refreshMaxAge = calculateMaxAge(tokens.refreshToken);
-            rewriteResponse.cookies.set("refreshToken", tokens.refreshToken, {
+          if (newRefreshToken) {
+            const refreshMaxAge = calculateMaxAge(newRefreshToken);
+            rewriteResponse.cookies.set("refreshToken", newRefreshToken, {
               httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
+              secure: process.env.NEXT_PUBLIC_COOKIE_SECURE === "true",
+              sameSite: (process.env.NEXT_PUBLIC_COOKIE_SAME_SITE || "lax") as
+                | "lax"
+                | "none",
               path: "/",
               maxAge: refreshMaxAge,
             });

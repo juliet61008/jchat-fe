@@ -29,7 +29,7 @@ const page = async (params: IProps) => {
   const queryClient = new QueryClient();
 
   await queryClient.prefetchQuery<TSearchChatRoomDtlResDto>({
-    queryKey: ["apiSearchChatRoom", roomId],
+    queryKey: ["apiSearchChatRoomDtl", roomId],
     queryFn: async () => apiSearchChatRoomDtl(roomId),
     staleTime: Infinity,
   });
