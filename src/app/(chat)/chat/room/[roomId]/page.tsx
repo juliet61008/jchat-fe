@@ -9,6 +9,7 @@ import {
   HydrationBoundary,
   QueryClient,
 } from "@tanstack/react-query";
+import { redirect } from "next/navigation";
 
 interface IProps {
   params: IParams;
@@ -28,11 +29,15 @@ const page = async (params: IProps) => {
 
   const queryClient = new QueryClient();
 
-  await queryClient.prefetchQuery<TSearchChatRoomDtlResDto>({
+  const res = await queryClient.fetchQuery<TSearchChatRoomDtlResDto>({
     queryKey: ["apiSearchChatRoomDtl", roomId],
     queryFn: async () => apiSearchChatRoomDtl(roomId),
     staleTime: Infinity,
   });
+
+  if (res.code !== 0) {
+    redirect("/chat/room");
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

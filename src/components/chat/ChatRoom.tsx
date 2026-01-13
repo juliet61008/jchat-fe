@@ -25,26 +25,31 @@ interface Props {
 const ChatRoom = (props: Props) => {
   const { user, roomId } = props;
 
-  // const [messages, setMessages] = useState<IChatRoomMsg[]>([]);
+  // 메세지 input
   const [inputValue, setInputValue] = useState("");
-
-  // 바닥의 div (바닥으로 보내기용)
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const msgBoxRef = useRef<HTMLDivElement>(null);
-
   // 소켓 연결
   const [connected, setConnected] = useState(false);
-  // 클라이언트
+  // 첫 마운트시 로딩 추가 (reactQuery의 Loading과 같이 사용)
+  const [isFstMountedLoading, setIsFstMountedLoading] = useState<boolean>(true);
+
+  // 바닥의 div (바닥으로 보내기용) ref
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // 바닥치고있는지 여부 검사하는 ref
+  const msgBoxRef = useRef<HTMLDivElement>(null);
+  // 첫마운트 검사 ref
+  const isFstMountedRef = useRef<boolean>(false);
+
+  // STOMP 클라이언트
   const clientRef = useRef<Client | null>(null);
+  // userQueryClient
   const queryClient = useQueryClient();
 
   /**
    * api 호출부
    */
-  const { data: accessToken } = useQuery({
-    queryKey: ["accessToken", user.userNo],
+  const { data: tokenData, refetch: refetchTokenData } = useQuery({
+    queryKey: ["tokenData", user.userNo],
     queryFn: checkAuth,
-    select: (res) => res.accessToken,
     enabled: !!user.userNo,
   });
 
@@ -103,6 +108,7 @@ const ChatRoom = (props: Props) => {
    * 전송
    */
   const handleSend = () => {
+    console.log("타나");
     if (inputValue.trim()) {
       // 낙관적 업데이트 위한 매칭용 임시데이터
       const tempId = `${user.sub}_${Date.now()}_${self.crypto.randomUUID()}`;
@@ -125,6 +131,8 @@ const ChatRoom = (props: Props) => {
           roomId: roomId,
           roomName: apiSearchChatRoomDtlData?.chatRoom.roomName ?? "",
           msgContent: inputValue,
+          accessToken: tokenData?.accessToken ?? "",
+          refreshToken: tokenData?.refreshToken ?? "",
         };
 
         queryClient.setQueryData(
@@ -159,35 +167,42 @@ const ChatRoom = (props: Props) => {
     }
   };
 
+  // 첫번째 loading 끝나면 바닥으로 바로 보내기
   useEffect(() => {
-    if (!apiSearchChatRoomDtlLoading) {
+    let loadingInterval: any;
+
+    if (!apiSearchChatRoomDtlLoading && !isFstMountedRef.current) {
+      // 첫번째 마운트 true로 변경
+      isFstMountedRef.current = true;
+      // 바닥으로 바로 보내기
       messagesEndRef.current?.scrollIntoView();
+
+      // 로딩 종료
+      loadingInterval = setTimeout(() => {
+        setIsFstMountedLoading(false);
+      }, 0);
     }
+
+    return () => clearInterval(loadingInterval);
   }, [apiSearchChatRoomDtlLoading]);
 
-  // WebSocket으로 받은 메시지를 React Query 캐시에 추가
-  // useEffect(() => {
-  //   const handleNewMessage = (newMsg: Message) => {
-  //     queryClient.setQueryData(
-  //       ["apiSearchChatRoomDtl", roomId],
-  //       (old: any) => ({
-  //         ...old,
-  //         chatRoomMsgList: [...(old?.chatRoomMsgList ?? []), newMsg]
-  //       })
-  //     );
-  //   };
+  // 아래로내리기
+  useEffect(() => {
+    // 마지막 메세지 본인 여부
+    const lastMsgMineYn =
+      apiSearchChatRoomDtlData?.chatRoomMsgList.at(-1)?.mineYn === "Y";
 
-  //   socket.on('message', handleNewMessage);
-  //   return () => socket.off('message', handleNewMessage);
-  // }, [roomId, queryClient]);
+    const isBottom = checkIfBottom();
 
-  // 주석이유 : 받을때도 내려감
-  // useEffect(() => {
-  //   scrollToBottom();
-  // }, [apiSearchChatRoomDtlData]);
+    console.log("isBottom", isBottom);
+
+    if (lastMsgMineYn) {
+      scrollToBottom();
+    }
+  }, [apiSearchChatRoomDtlData]);
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!tokenData?.accessToken) return;
 
     // 구독 참조 저장
     let subscriptionRef: any = null;
@@ -195,7 +210,7 @@ const ChatRoom = (props: Props) => {
     const stompClient = new Client({
       brokerURL: `${process.env.NEXT_PUBLIC_JCHAT_WS_URL}/ws`,
       connectHeaders: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${tokenData.accessToken}`,
       },
       heartbeatIncoming: 10000, // 10초마다 서버에서 받기
       heartbeatOutgoing: 10000, // 10초마다 서버로 보내기
@@ -203,6 +218,7 @@ const ChatRoom = (props: Props) => {
       debug: (str) => {
         // console.log("🔍 STOMP Debug:", str);
       },
+      beforeConnect: () => {},
       onConnect: (frame) => {
         // console.log("✅ 연결 성공", frame);
         // console.log("서버 버전:", frame.headers.version);
@@ -280,16 +296,6 @@ const ChatRoom = (props: Props) => {
             );
           }
 
-          // TODO 수정해야겠따
-          requestAnimationFrame(() => {
-            const isBottom = checkIfBottom();
-            console.log("RAF 후 체크:", isBottom);
-            if (isBottom) {
-              console.log("내려간다");
-              scrollToBottom();
-            }
-          });
-
           isProcessing = false;
         };
 
@@ -314,28 +320,51 @@ const ChatRoom = (props: Props) => {
         console.log("연결 끊김");
         // 구독 해제
         setConnected(false);
-        // if (subscriptionRef) {
-        //   subscriptionRef.unsubscribe();
-        //   subscriptionRef = null;
-        // }
+
+        if (subscriptionRef) {
+          subscriptionRef.unsubscribe();
+          subscriptionRef = null;
+        }
       },
       onStompError: (frame) => {
-        // console.error("⚠️ STOMP 에러:", frame);
+        setConnected(false);
+        console.error("STOMP 에러:", frame);
+        // const message = frame.body || frame.headers.message || "";
+        // "401:" 로 시작하면 인증 에러
+        // if (message.startsWith("401")) {
+        //   console.log("Authentication failed");
+
+        //   tokenRefreshServerAction(tokenData).then(() => {
+        //     refetchTokenData();
+        //     const test = queryClient.getQueryData([`tokenData`, user.userNo]);
+
+        //     console.log("test", test);
+        //   });
+
+        //   // try {
+        //   //     const newToken = await refreshToken();
+        //   //     localStorage.setItem('accessToken', newToken);
+        //   //     client.connectHeaders.Authorization = `Bearer ${newToken}`;
+        //   //     client.activate();
+        //   // } catch (error) {
+        //   //     window.location.href = '/login';
+        //   // }
+        // }
         // console.error("에러 command:", frame.command);
         // console.error("에러 headers:", frame.headers);
         // console.error("에러 body:", frame.body);
       },
       // 비정상적인 close
       onWebSocketClose: (event) => {
-        // console.error("⚠️ WebSocket 에러:", event);
+        // console.error("onWebSocketClose", event);
         // console.error("에러 타입:", event.type);
         setConnected(false);
 
         // 정상적인 종료(clean close)인 경우 재연결 안 함
-        if (event?.code === 1000) {
-          console.log("정상 종료, 재연결 안 함");
-          return;
-        }
+        // if (event?.code === 1000) {
+        //   console.log("정상 종료, 재연결 안 함");
+        //   return;
+        // }
 
         // 비정상 종료만 재연결
         // console.log("비정상 종료, 5초 후 재연결 시도...");
@@ -362,12 +391,16 @@ const ChatRoom = (props: Props) => {
         stompClient.deactivate();
       }
     };
-  }, [roomId, queryClient, accessToken]);
+  }, [roomId, queryClient, tokenData]);
+
+  useEffect(() => {
+    console.log("tokenData", tokenData);
+  }, [tokenData]);
 
   return (
     <>
       <Loading
-        isLoading={apiSearchChatRoomDtlLoading}
+        isLoading={apiSearchChatRoomDtlLoading || isFstMountedLoading}
         text="채팅방 불러오는중"
       />
       <div className="flex items-center justify-center min-h-screen bg-background p-0 md:p-4">
