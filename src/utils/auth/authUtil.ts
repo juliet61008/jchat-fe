@@ -14,9 +14,7 @@ import { cookies } from "next/headers";
 export const loginServerAction = async (
   getAuthLoginReqDto: IAuthLoginReqDto
 ): Promise<TAuthLoginResDto> => {
-  console.log("111");
   const res = await getAuthLogin(getAuthLoginReqDto);
-  console.log("222");
   if (res.code !== 0) return res;
 
   const { accessToken, refreshToken } = res.data;

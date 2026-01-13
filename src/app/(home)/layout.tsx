@@ -1,4 +1,5 @@
 import LoginUserHead from "@/components/mem/LoginUserHead";
+import { apiIsLogin } from "@/service/auth/apiAuthLogin";
 import { getUser } from "@/utils/mem/userUtil";
 import { Menu, User } from "lucide-react";
 import Image from "next/image";
@@ -11,6 +12,7 @@ export default async function RootLayout({
 }>) {
   // 서버에서 초기 유저 정보 파싱
   const initialUser = await getUser();
+  const initialIsLogin = await apiIsLogin();
 
   return (
     <div className="flex flex-col min-h-screen max-w-md mx-auto bg-white">
@@ -22,7 +24,10 @@ export default async function RootLayout({
             <Menu className="w-6 h-6 text-gray-700" />
           </button>
           {/* 로그인상태 컴포넌트 */}
-          <LoginUserHead initialUser={initialUser} />
+          <LoginUserHead
+            initialUser={initialUser}
+            initialIsLogin={initialIsLogin}
+          />
           {/* 로고 */}
           <Link href="/">
             <Image
