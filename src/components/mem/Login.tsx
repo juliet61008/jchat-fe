@@ -118,6 +118,7 @@ const Login = () => {
     if (res.code === 0) {
       // 로그인 성공 후 user 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["isLogin"] });
 
       router.push("/");
     }

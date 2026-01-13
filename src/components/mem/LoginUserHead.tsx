@@ -6,14 +6,15 @@ import { apiIsLogin } from "@/service/auth/apiAuthLogin";
 import { getUser } from "@/utils/mem/userUtil";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 interface Props {
   initialUser: IJwtPayLoad;
+  initialIsLogin: IApiResponse<boolean>;
 }
 
 const LoginUserHead = (props: Props) => {
-  const { initialUser } = props;
+  const { initialUser, initialIsLogin } = props;
 
   const router = useRouter();
 
@@ -35,10 +36,15 @@ const LoginUserHead = (props: Props) => {
         return res.data;
       },
       staleTime: 5 * 60 * 1000, // 5분
+      initialData: initialIsLogin,
       refetchOnMount: "always", // 컴포넌트 마운트 시 항상 재조회
       refetchOnWindowFocus: true, // 탭 전환시 조회
     }
   );
+
+  useEffect(() => {
+    console.log("isLoginData", isLoginData);
+  }, [isLoginData]);
 
   const user = useMemo(() => {
     return data;
