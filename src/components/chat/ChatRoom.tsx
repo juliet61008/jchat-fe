@@ -14,7 +14,6 @@ import { apiSearchChatRoomDtl } from "@/service/chat/apiChat";
 import { checkAuth } from "@/utils/auth/authUtil";
 import { Client } from "@stomp/stompjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { randomUUID } from "crypto";
 import { Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -28,7 +27,11 @@ const ChatRoom = (props: Props) => {
 
   // const [messages, setMessages] = useState<IChatRoomMsg[]>([]);
   const [inputValue, setInputValue] = useState("");
+
+  // 바닥의 div (바닥으로 보내기용)
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const msgBoxRef = useRef<HTMLDivElement>(null);
+
   // 소켓 연결
   const [connected, setConnected] = useState(false);
   // 클라이언트
@@ -38,7 +41,6 @@ const ChatRoom = (props: Props) => {
   /**
    * api 호출부
    */
-
   const { data: accessToken } = useQuery({
     queryKey: ["accessToken", user.userNo],
     queryFn: checkAuth,
@@ -64,8 +66,37 @@ const ChatRoom = (props: Props) => {
   /**
    * 함수 선언부
    */
+
+  /**
+   * 바텀으로 이동
+   */
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  /**
+   * 바닥 치고 있는지 검사
+   * @returns
+   */
+  const checkIfBottom = () => {
+    const container = msgBoxRef.current;
+    if (!container) return false;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    // 바닥에 정확히 도달
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight;
+    console.log("======================");
+    console.log("scrollTop", scrollTop);
+    console.log("clientHeight", clientHeight);
+    console.log("scrollTop + clientHeight", scrollTop + clientHeight);
+    console.log("scrollHeight", scrollHeight);
+    console.log("isAtBottom", isAtBottom);
+    console.log("======================");
+
+    // 또는 바닥에서 50px 이내
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
+
+    return isAtBottom; // 또는 isNearBottom
   };
 
   /**
@@ -74,7 +105,7 @@ const ChatRoom = (props: Props) => {
   const handleSend = () => {
     if (inputValue.trim()) {
       // 낙관적 업데이트 위한 매칭용 임시데이터
-      const tempId = `${user.sub}_${Date.now()}_${randomUUID}`;
+      const tempId = `${user.sub}_${Date.now()}_${self.crypto.randomUUID()}`;
 
       const newMessage: IChatRoomMsg = {
         roomId: roomId,
@@ -87,32 +118,29 @@ const ChatRoom = (props: Props) => {
         delYn: "N",
         createTm: Date.now().toString(),
       };
-      console.log("test1", newMessage);
+
       if (clientRef.current && clientRef?.current?.connected && inputValue) {
-        console.log("test2");
         const chatSendParams: ISendMsgReqDto = {
           tempId: tempId,
           roomId: roomId,
           roomName: apiSearchChatRoomDtlData?.chatRoom.roomName ?? "",
           msgContent: inputValue,
         };
-        console.log("test3");
+
         queryClient.setQueryData(
           ["apiSearchChatRoomDtl", roomId],
-          (old: ISearchChatRoomDtlResDto) => {
-            console.log("old", old);
-            console.log("[...(old?.chatRoomMsgList ?? []), newMessage]", [
-              ...(old?.chatRoomMsgList ?? []),
-              newMessage,
-            ]);
-            console.log("roomId", roomId);
-            return {
-              ...old,
-              chatRoomMsgList: [...(old?.chatRoomMsgList ?? []), newMessage],
-            };
-          }
+          (old: TSearchChatRoomDtlResDto) => ({
+            ...old,
+            data: {
+              ...old.data,
+              chatRoomMsgList: [
+                ...(old.data.chatRoomMsgList ?? []),
+                newMessage,
+              ],
+            },
+          })
         );
-        console.log("test4");
+
         // ref에서 가져옴
         clientRef.current.publish({
           destination: `/app/chat/send/${roomId}`,
@@ -173,26 +201,29 @@ const ChatRoom = (props: Props) => {
       heartbeatOutgoing: 10000, // 10초마다 서버로 보내기
       reconnectDelay: 5000, // 재연결 시도
       debug: (str) => {
-        console.log("🔍 STOMP Debug:", str);
+        // console.log("🔍 STOMP Debug:", str);
       },
       onConnect: (frame) => {
-        console.log("✅ 연결 성공", frame);
-        console.log("서버 버전:", frame.headers.version);
-        console.log("서버 정보:", frame.headers.server);
+        // console.log("✅ 연결 성공", frame);
+        // console.log("서버 버전:", frame.headers.version);
+        // console.log("서버 정보:", frame.headers.server);
         setConnected(true); // 콜백 안이라 괜찮음
         queryClient.setQueryData(
           ["apiSearchChatRoomDtl", roomId],
-          (old: ISearchChatRoomDtlResDto) => ({
+          (old: TSearchChatRoomDtlResDto) => ({
             ...old,
-            chatRoomMsgList: [
-              ...(old?.chatRoomMsgList ?? []),
-              // {
-              //   roomId: roomId,
-              //   msgId: `T${randomUUID}`,
-              //   sndName: "알림",
-              //   msgContent: "연결됨",
-              // },
-            ],
+            data: {
+              ...old.data,
+              chatRoomMsgList: [
+                ...(old.data.chatRoomMsgList ?? []),
+                // {
+                //   roomId: roomId,
+                //   msgId: `T${randomUUID}`,
+                //   sndName: "알림",
+                //   msgContent: "연결됨",
+                // },
+              ],
+            },
           })
         );
 
@@ -207,22 +238,26 @@ const ChatRoom = (props: Props) => {
           while (messageQueue.length > 0) {
             const res = messageQueue.shift()!;
 
-            queryClient.setQueryData<ISearchChatRoomDtlResDto>(
+            queryClient.setQueryData<TSearchChatRoomDtlResDto>(
               ["apiSearchChatRoomDtl", roomId],
               (old) => {
                 if (!old) return old;
 
-                const oldList = old.chatRoomMsgList ?? [];
+                const oldList = old.data.chatRoomMsgList ?? [];
 
                 // tempId 교체
                 if (res.tempId) {
                   const tempIdx = oldList.findIndex(
                     (msg) => msg.msgId === res.tempId
                   );
+
                   if (tempIdx !== -1) {
                     const newList = [...oldList];
                     newList[tempIdx] = res.chatRoomMsg;
-                    return { ...old, chatRoomMsgList: newList };
+                    return {
+                      ...old,
+                      data: { ...old.data, chatRoomMsgList: newList },
+                    };
                   }
                 }
 
@@ -236,11 +271,24 @@ const ChatRoom = (props: Props) => {
                 // 새 메시지 추가
                 return {
                   ...old,
-                  chatRoomMsgList: [...oldList, res.chatRoomMsg],
+                  data: {
+                    ...old.data,
+                    chatRoomMsgList: [...oldList, res.chatRoomMsg],
+                  },
                 };
               }
             );
           }
+
+          // TODO 수정해야겠따
+          requestAnimationFrame(() => {
+            const isBottom = checkIfBottom();
+            console.log("RAF 후 체크:", isBottom);
+            if (isBottom) {
+              console.log("내려간다");
+              scrollToBottom();
+            }
+          });
 
           isProcessing = false;
         };
@@ -249,13 +297,12 @@ const ChatRoom = (props: Props) => {
           `/topic/chat/send/${roomId}`,
           (message) => {
             const res: ISendMsgResDto = JSON.parse(message.body);
-            console.log("받음", res);
 
             // 새 매새지 user가 본인이면
-            if (res.chatRoomMsg.sndUserNo === user.userNo) {
-              // 스크롤 바닥으로 보내기
-              scrollToBottom();
-            }
+            // if (res.chatRoomMsg.sndUserNo === user.userNo) {
+            //   // 스크롤 바닥으로 보내기
+            //   scrollToBottom();
+            // }
 
             // 메세지큐 데이터 삽입
             messageQueue.push(res);
@@ -273,15 +320,15 @@ const ChatRoom = (props: Props) => {
         // }
       },
       onStompError: (frame) => {
-        console.error("⚠️ STOMP 에러:", frame);
-        console.error("에러 command:", frame.command);
-        console.error("에러 headers:", frame.headers);
-        console.error("에러 body:", frame.body);
+        // console.error("⚠️ STOMP 에러:", frame);
+        // console.error("에러 command:", frame.command);
+        // console.error("에러 headers:", frame.headers);
+        // console.error("에러 body:", frame.body);
       },
       // 비정상적인 close
       onWebSocketClose: (event) => {
-        console.error("⚠️ WebSocket 에러:", event);
-        console.error("에러 타입:", event.type);
+        // console.error("⚠️ WebSocket 에러:", event);
+        // console.error("에러 타입:", event.type);
         setConnected(false);
 
         // 정상적인 종료(clean close)인 경우 재연결 안 함
@@ -317,10 +364,6 @@ const ChatRoom = (props: Props) => {
     };
   }, [roomId, queryClient, accessToken]);
 
-  useEffect(() => {
-    console.log("apiSearchChatRoomDtlData", apiSearchChatRoomDtlData);
-  }, [apiSearchChatRoomDtlData]);
-
   return (
     <>
       <Loading
@@ -354,7 +397,10 @@ const ChatRoom = (props: Props) => {
           </div>
 
           {/* 메시지 목록 - 부드러운 스크롤바 */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 scrollbar-smooth">
+          <div
+            ref={msgBoxRef}
+            className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 scrollbar-smooth"
+          >
             {apiSearchChatRoomDtlData &&
               apiSearchChatRoomDtlData.chatRoomMsgList &&
               apiSearchChatRoomDtlData.chatRoomMsgList.map(
