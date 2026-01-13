@@ -2,8 +2,10 @@
 
 import {
   IAuthLoginReqDto,
+  ITokenDto,
   TAuthLoginResDto,
 } from "@/interface/auth/interfaceAuthLogin";
+import { IApiResponse } from "@/interface/common/interfaceApiResponse";
 import { getAuthLogin } from "@/service/auth/apiAuthLogin";
 import { cookies } from "next/headers";
 
@@ -112,6 +114,20 @@ export const saveTokenServerAction = async (
 };
 
 /**
+ * 토큰검증
+ * @param token
+ * @returns
+ */
+export const isTokenValid = async (token: string): Promise<boolean> => {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+};
+
+/**
  * maxAge 계산
  * @param token
  * @returns
@@ -126,5 +142,38 @@ const calculateMaxAge = (token: string): number => {
   } catch (error) {
     console.error("Failed to calculate maxAge:", error);
     return 3600;
+  }
+};
+
+/**
+ * 갱신
+ */
+export const tokenRefreshServerAction = async (tokenData: any) => {
+  const refreshRes = await fetch(
+    `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/refresh`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${tokenData?.refreshToken}`,
+      },
+    }
+  );
+
+  if (refreshRes.ok) {
+    const refreshData: IApiResponse<ITokenDto> = await refreshRes.json();
+
+    if (refreshData.code !== 0) {
+      console.error("Refresh response invalid", refreshData);
+    }
+
+    const newAccessToken = refreshData.data?.accessToken;
+    const newRefreshToken = refreshData.data?.refreshToken;
+
+    if (!newAccessToken) {
+      throw new Error("No access token in refresh response");
+    }
+
+    await saveTokenServerAction(newAccessToken, newRefreshToken);
   }
 };

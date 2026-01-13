@@ -6,7 +6,7 @@ import { apiIsLogin } from "@/service/auth/apiAuthLogin";
 import { getUser } from "@/utils/mem/userUtil";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 interface Props {
   initialUser: IJwtPayLoad;
@@ -42,10 +42,6 @@ const LoginUserHead = (props: Props) => {
     }
   );
 
-  useEffect(() => {
-    console.log("isLoginData", isLoginData);
-  }, [isLoginData]);
-
   const user = useMemo(() => {
     return data;
   }, [data]);
@@ -61,9 +57,8 @@ const LoginUserHead = (props: Props) => {
   return (
     <div>
       <>
-        {isLogin ? <>로그인</> : <>비로그인</>}
-        {user ? (
-          <p>{user.userNo}</p>
+        {isLogin ? (
+          <p>{user.name}</p>
         ) : (
           <button onClick={handleLoginBtnClick}>log in</button>
         )}
