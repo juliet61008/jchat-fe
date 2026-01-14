@@ -2,7 +2,6 @@
  * 채팅 인터페이스
  */
 
-import { ITokenDto } from "@/interface/auth/interfaceAuthLogin";
 import { IApiResponse } from "@/interface/common/interfaceApiResponse";
 
 /**
@@ -74,7 +73,7 @@ export interface IChatRoomMsg {
 /**
  * 채팅 전송 REQ DTO
  */
-export interface ISendMsgReqDto extends ITokenDto {
+export interface ISendMsgReqDto {
   tempId: string;
   roomId: number;
   roomName: string;

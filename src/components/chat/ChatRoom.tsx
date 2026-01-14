@@ -90,25 +90,17 @@ const ChatRoom = (props: Props) => {
     const { scrollTop, scrollHeight, clientHeight } = container;
     // 바닥에 정확히 도달
     const isAtBottom = scrollTop + clientHeight >= scrollHeight;
-    console.log("======================");
-    console.log("scrollTop", scrollTop);
-    console.log("clientHeight", clientHeight);
-    console.log("scrollTop + clientHeight", scrollTop + clientHeight);
-    console.log("scrollHeight", scrollHeight);
-    console.log("isAtBottom", isAtBottom);
-    console.log("======================");
 
     // 또는 바닥에서 50px 이내
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
 
-    return isAtBottom; // 또는 isNearBottom
+    return isNearBottom; // 또는 isNearBottom
   };
 
   /**
    * 전송
    */
   const handleSend = () => {
-    console.log("타나");
     if (inputValue.trim()) {
       // 낙관적 업데이트 위한 매칭용 임시데이터
       const tempId = `${user.sub}_${Date.now()}_${self.crypto.randomUUID()}`;
@@ -131,8 +123,6 @@ const ChatRoom = (props: Props) => {
           roomId: roomId,
           roomName: apiSearchChatRoomDtlData?.chatRoom.roomName ?? "",
           msgContent: inputValue,
-          accessToken: tokenData?.accessToken ?? "",
-          refreshToken: tokenData?.refreshToken ?? "",
         };
 
         queryClient.setQueryData(
@@ -186,17 +176,16 @@ const ChatRoom = (props: Props) => {
     return () => clearInterval(loadingInterval);
   }, [apiSearchChatRoomDtlLoading]);
 
-  // 아래로내리기
+  // 새 메세지 아래로내리기
   useEffect(() => {
     // 마지막 메세지 본인 여부
     const lastMsgMineYn =
       apiSearchChatRoomDtlData?.chatRoomMsgList.at(-1)?.mineYn === "Y";
 
+    // 바닥 치고 있었는지 여부
     const isBottom = checkIfBottom();
 
-    console.log("isBottom", isBottom);
-
-    if (lastMsgMineYn) {
+    if (lastMsgMineYn || isBottom) {
       scrollToBottom();
     }
   }, [apiSearchChatRoomDtlData]);
@@ -215,14 +204,9 @@ const ChatRoom = (props: Props) => {
       heartbeatIncoming: 10000, // 10초마다 서버에서 받기
       heartbeatOutgoing: 10000, // 10초마다 서버로 보내기
       reconnectDelay: 5000, // 재연결 시도
-      debug: (str) => {
-        // console.log("🔍 STOMP Debug:", str);
-      },
-      beforeConnect: () => {},
+      // beforeConnect: () => {},
       onConnect: (frame) => {
-        // console.log("✅ 연결 성공", frame);
-        // console.log("서버 버전:", frame.headers.version);
-        // console.log("서버 정보:", frame.headers.server);
+        console.log("연결 성공", frame);
         setConnected(true); // 콜백 안이라 괜찮음
         queryClient.setQueryData(
           ["apiSearchChatRoomDtl", roomId],
@@ -329,34 +313,10 @@ const ChatRoom = (props: Props) => {
       onStompError: (frame) => {
         setConnected(false);
         console.error("STOMP 에러:", frame);
-        // const message = frame.body || frame.headers.message || "";
-        // "401:" 로 시작하면 인증 에러
-        // if (message.startsWith("401")) {
-        //   console.log("Authentication failed");
-
-        //   tokenRefreshServerAction(tokenData).then(() => {
-        //     refetchTokenData();
-        //     const test = queryClient.getQueryData([`tokenData`, user.userNo]);
-
-        //     console.log("test", test);
-        //   });
-
-        //   // try {
-        //   //     const newToken = await refreshToken();
-        //   //     localStorage.setItem('accessToken', newToken);
-        //   //     client.connectHeaders.Authorization = `Bearer ${newToken}`;
-        //   //     client.activate();
-        //   // } catch (error) {
-        //   //     window.location.href = '/login';
-        //   // }
-        // }
-        // console.error("에러 command:", frame.command);
-        // console.error("에러 headers:", frame.headers);
-        // console.error("에러 body:", frame.body);
       },
       // 비정상적인 close
       onWebSocketClose: (event) => {
-        // console.error("onWebSocketClose", event);
+        console.error("onWebSocketClose", event);
         // console.error("에러 타입:", event.type);
         setConnected(false);
 
@@ -379,6 +339,7 @@ const ChatRoom = (props: Props) => {
     stompClient.activate();
     clientRef.current = stompClient;
 
+    // 클린업
     return () => {
       // 구독 해제
       if (subscriptionRef) {
@@ -392,10 +353,6 @@ const ChatRoom = (props: Props) => {
       }
     };
   }, [roomId, queryClient, tokenData]);
-
-  useEffect(() => {
-    console.log("tokenData", tokenData);
-  }, [tokenData]);
 
   return (
     <>

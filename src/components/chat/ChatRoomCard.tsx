@@ -40,9 +40,11 @@ export default function ChatRoomCard(props: Props) {
       {/* 채팅방 정보 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-sm truncate">{data.roomName}</h3>
+          <h3 className="font-semibold text-sm truncate">
+            {data.expoRoomName || data.roomName}
+          </h3>
           <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
-            {formatTime(dayjs(data.lastMsgCreateTm).format("YYYYMMDDhhmmss"))}
+            {formatTime(data.lastMsgCreateTm)}
           </span>
         </div>
         <p className="text-sm text-muted-foreground truncate">
@@ -54,28 +56,18 @@ export default function ChatRoomCard(props: Props) {
 }
 
 // 시간 포맷팅 헬퍼
-function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24));
+function formatTime(date: Date | string): string {
+  const dayjsDate = dayjs(date); // Date든 string이든 처리 가능
+  const now = dayjs();
+  const diffDays = now.diff(dayjsDate, "day");
 
   if (diffDays === 0) {
-    // 오늘: 시간만 표시
-    return date.toLocaleTimeString("ko-KR", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    return dayjsDate.format("A h:mm");
   } else if (diffDays === 1) {
     return "어제";
   } else if (diffDays < 7) {
     return `${diffDays}일 전`;
   } else {
-    // 일주일 이상: 날짜 표시
-    return date.toLocaleDateString("ko-KR", {
-      month: "numeric",
-      day: "numeric",
-    });
+    return dayjsDate.format("M월 D일");
   }
 }
