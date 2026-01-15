@@ -5,6 +5,7 @@ import {
   ITokenDto,
   TAuthLoginResDto,
 } from "@/interface/auth/interfaceAuthLogin";
+import { ICheckAuthRes } from "@/interface/auth/interfaceJwt";
 import { IApiResponse } from "@/interface/common/interfaceApiResponse";
 import { getAuthLogin } from "@/service/auth/apiAuthLogin";
 import { cookies } from "next/headers";
@@ -71,7 +72,7 @@ export const logoutServerAction = async () => {
 };
 
 // 쿠키 확인용 Server Action
-export const checkAuth = async () => {
+export const checkAuth = async (): Promise<ICheckAuthRes> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("accessToken")?.value;
   const refreshToken = cookieStore.get("refreshToken")?.value;
@@ -114,14 +115,14 @@ export const saveTokenServerAction = async (
 };
 
 /**
- * 토큰검증
+ * 토큰검증 5분전
  * @param token
  * @returns
  */
 export const isTokenValid = async (token: string): Promise<boolean> => {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp * 1000 > Date.now();
+    return payload.exp * 1000 - 60 * 5 * 1000 > Date.now();
   } catch {
     return false;
   }
@@ -150,7 +151,7 @@ const calculateMaxAge = (token: string): number => {
  */
 export const tokenRefreshServerAction = async (tokenData: any) => {
   const refreshRes = await fetch(
-    `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/refresh`,
+    `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/refreshToken`,
     {
       method: "POST",
       headers: {
@@ -162,7 +163,7 @@ export const tokenRefreshServerAction = async (tokenData: any) => {
 
   if (refreshRes.ok) {
     const refreshData: IApiResponse<ITokenDto> = await refreshRes.json();
-
+    console.log("refreshData", refreshData);
     if (refreshData.code !== 0) {
       console.error("Refresh response invalid", refreshData);
     }
