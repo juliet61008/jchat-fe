@@ -88,3 +88,22 @@ export interface ISendMsgResDto {
   roomId: number;
   chatRoomMsg: IChatRoomMsg;
 }
+
+/**
+ * 채팅 읽음 REQ DTO
+ */
+export interface IReadMsgReqDto {
+  roomId: number; // 채팅방번호
+  lastReadMsgId: number; // 마지막 읽은 메세지 번호
+  lastReadMsgCreateTm: Date;
+}
+
+/**
+ * 채팅 읽음 RES DTO
+ */
+export interface IReadMsgResDto {
+  roomId: number; // 채팅방번호
+  userNo: number;
+  lastReadMsgId: number; // 마지막 읽은 메세지 번호
+  lastReadMsgCreateTm: Date;
+}

@@ -2,6 +2,7 @@
 "use client";
 
 import Loading from "@/components/common/Loading";
+import { useToken } from "@/hooks/auth/useToken";
 import { IJwtPayLoad } from "@/interface/auth/interfaceJwt";
 import {
   IChatRoomMsg,
@@ -11,7 +12,6 @@ import {
   TSearchChatRoomDtlResDto,
 } from "@/interface/chat/interfaceChat";
 import { apiSearchChatRoomDtl } from "@/service/chat/apiChat";
-import { checkAuth } from "@/utils/auth/authUtil";
 import { Client } from "@stomp/stompjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Send } from "lucide-react";
@@ -24,6 +24,8 @@ interface Props {
 
 const ChatRoom = (props: Props) => {
   const { user, roomId } = props;
+
+  const { tokenData, refreshTokenData } = useToken();
 
   // 메세지 input
   const [inputValue, setInputValue] = useState("");
@@ -44,14 +46,24 @@ const ChatRoom = (props: Props) => {
   // userQueryClient
   const queryClient = useQueryClient();
 
-  /**
-   * api 호출부
-   */
-  const { data: tokenData, refetch: refetchTokenData } = useQuery({
-    queryKey: ["tokenData", user.userNo],
-    queryFn: checkAuth,
-    enabled: !!user.userNo,
-  });
+  // TODO READ 쓰로틀로 개발중
+  // const test = () => {
+  //   if (clientRef.current) {
+  //     const params = {};
+  //     clientRef.current.publish({
+  //       destination: `/app/chat/send/${roomId}`,
+  //       body: JSON.stringify(params),
+  //     });
+  //   }
+  // };
+
+  // // throttle 테스트
+  // const readLastMsgThrottled = useMemo(() =>
+  //   throttle(test, 1000, {
+  //     leading: true,
+  //     trailing: true,
+  //   }), []
+  // );
 
   // 메시지 (클라이언트에서만 fetch, 실시간)
   const {
@@ -95,6 +107,227 @@ const ChatRoom = (props: Props) => {
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
 
     return isNearBottom; // 또는 isNearBottom
+  };
+
+  // queue 사용
+  const processQueue = (
+    messageQueue: ISendMsgResDto[],
+    process: { isProcessing: boolean }
+  ) => {
+    if (process.isProcessing || messageQueue.length === 0) return;
+    process.isProcessing = true;
+
+    while (messageQueue.length > 0) {
+      const res = messageQueue.shift()!;
+
+      queryClient.setQueryData<TSearchChatRoomDtlResDto>(
+        ["apiSearchChatRoomDtl", roomId],
+        (old) => {
+          if (!old) return old;
+
+          const oldList = old.data.chatRoomMsgList ?? [];
+
+          // tempId 교체
+          if (res.tempId) {
+            const tempIdx = oldList.findIndex(
+              (msg) => msg.msgId === res.tempId
+            );
+
+            if (tempIdx !== -1) {
+              const newList = [...oldList];
+              newList[tempIdx] = res.chatRoomMsg;
+              return {
+                ...old,
+                data: { ...old.data, chatRoomMsgList: newList },
+              };
+            }
+          }
+
+          // 중복 체크
+          if (oldList.some((msg) => msg.msgId === res.chatRoomMsg.msgId)) {
+            return old;
+          }
+
+          // 새 메시지 추가
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              chatRoomMsgList: [...oldList, res.chatRoomMsg],
+            },
+          };
+        }
+      );
+    }
+
+    process.isProcessing = false;
+  };
+
+  // /**
+  //  * 클라이언트 생성
+  //  * @returns
+  //  */
+  // const generateClient = () => {
+  //   const client = new Client({
+  //     brokerURL: `${process.env.NEXT_PUBLIC_JCHAT_WS_URL}/ws`,
+  //     connectHeaders: {
+  //       Authorization: `Bearer ${tokenData?.accessToken}`,
+  //     },
+  //     heartbeatIncoming: 10000, // 10초마다 서버에서 받기
+  //     heartbeatOutgoing: 10000, // 10초마다 서버로 보내기
+  //     reconnectDelay: 5000, // 재연결 시도
+  //     // beforeConnect: async () => {},
+  //     onConnect: (frame) => {
+  //       console.log("연결 성공", frame);
+
+  //       setConnected(true); // 콜백 안이라 괜찮음
+  //       queryClient.setQueryData(
+  //         ["apiSearchChatRoomDtl", roomId],
+  //         (old: TSearchChatRoomDtlResDto) => ({
+  //           ...old,
+  //           data: {
+  //             ...old.data,
+  //             chatRoomMsgList: [
+  //               ...(old.data.chatRoomMsgList ?? []),
+  //               // {
+  //               //   roomId: roomId,
+  //               //   msgId: `T${randomUUID}`,
+  //               //   sndName: "알림",
+  //               //   msgContent: "연결됨",
+  //               // },
+  //             ],
+  //           },
+  //         })
+  //       );
+
+  //       // 메세지 정렬할 queue
+  //       const messageQueue: ISendMsgResDto[] = [];
+  //       const process = { isProcessing: false };
+
+  //       // 메세지 발송 구독
+  //       client.subscribe(`/topic/chat/send/${roomId}`, (message) => {
+  //         const res: ISendMsgResDto = JSON.parse(message.body);
+
+  //         // 메세지큐 데이터 삽입
+  //         messageQueue.push(res);
+  //         processQueue(messageQueue, process);
+  //       });
+
+  //       // read 구독
+  //       client.subscribe(`/topic/chat/read/${roomId}`, (message) => {});
+  //     },
+  //     onDisconnect: () => {
+  //       console.log("연결 끊김");
+  //       // 구독 해제
+  //       setConnected(false);
+  //     },
+  //     onStompError: async (frame) => {
+  //       console.error("STOMP 에러:", frame);
+
+  //       setConnected(false);
+
+  //       await client.deactivate();
+
+  //       const message = frame.body || frame.headers.message || "";
+  //       // "401:" 로 시작하면 인증 에러
+  //       if (message.startsWith("401")) {
+  //         await refreshTokenData();
+
+  //         const newClient = generateClient(tokenData?.accessToken);
+
+  //         newClient.activate();
+  //       }
+  //     },
+  //     // 비정상적인 close
+  //     onWebSocketClose: (event) => {
+  //       console.error("onWebSocketClose", event);
+  //       client.deactivate();
+  //       setConnected(false);
+  //     },
+  //   });
+
+  //   return client;
+  // };
+
+  /**
+   * 클라이언트 생성
+   * @returns
+   */
+  const generateClient = (accessToken?: string | null) => {
+    const client = new Client({
+      brokerURL: `${process.env.NEXT_PUBLIC_JCHAT_WS_URL}/ws`,
+      connectHeaders: {
+        Authorization: `Bearer ${accessToken || tokenData?.accessToken}`,
+      },
+      heartbeatIncoming: 10000, // 10초마다 서버에서 받기
+      heartbeatOutgoing: 10000, // 10초마다 서버로 보내기
+      reconnectDelay: 5000, // 재연결 시도
+      // beforeConnect: async () => {},
+      onConnect: (frame) => {
+        console.log("연결 성공", frame);
+
+        setConnected(true); // 콜백 안이라 괜찮음
+        queryClient.setQueryData(
+          ["apiSearchChatRoomDtl", roomId],
+          (old: TSearchChatRoomDtlResDto) => ({
+            ...old,
+            data: {
+              ...old.data,
+              chatRoomMsgList: [
+                ...(old.data.chatRoomMsgList ?? []),
+                // {
+                //   roomId: roomId,
+                //   msgId: `T${randomUUID}`,
+                //   sndName: "알림",
+                //   msgContent: "연결됨",
+                // },
+              ],
+            },
+          })
+        );
+
+        // 메세지 정렬할 queue
+        const messageQueue: ISendMsgResDto[] = [];
+        const process = { isProcessing: false };
+
+        client.subscribe(`/topic/chat/send/${roomId}`, (message) => {
+          const res: ISendMsgResDto = JSON.parse(message.body);
+
+          // 메세지큐 데이터 삽입
+          messageQueue.push(res);
+          processQueue(messageQueue, process);
+        });
+      },
+      onDisconnect: () => {
+        console.log("연결 끊김");
+        // 구독 해제
+        setConnected(false);
+      },
+      onStompError: async (frame) => {
+        console.error("STOMP 에러:", frame);
+
+        setConnected(false);
+
+        await client.deactivate();
+
+        const message = frame.body || frame.headers.message || "";
+        // "401:" 로 시작하면 인증 에러
+        if (message.startsWith("401")) {
+          await refreshTokenData();
+
+          const newClient = generateClient(tokenData?.accessToken);
+
+          newClient.activate();
+        }
+      },
+      // 비정상적인 close
+      onWebSocketClose: (event) => {
+        console.error("onWebSocketClose", event);
+        setConnected(false);
+      },
+    });
+
+    return client;
   };
 
   /**
@@ -150,12 +383,41 @@ const ChatRoom = (props: Props) => {
     }
   };
 
+  /**
+   * 엔터키 이벤트
+   * @param e
+   */
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
+
+  /**
+   * 브라우저 백그라운드 감지
+   * 포그라운드 돌아올 경우 재연결
+   * */
+  useEffect(() => {
+    const visibilitychange = async () => {
+      if (!document.hidden) {
+        if (clientRef.current) {
+          await clientRef.current.deactivate();
+          clientRef.current.activate();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", visibilitychange);
+
+    // 클린업
+    return () => {
+      document.removeEventListener("visibilitychange", visibilitychange);
+      if (clientRef.current) {
+        clientRef.current.deactivate();
+      }
+    };
+  }, []);
 
   // 첫번째 loading 끝나면 바닥으로 바로 보내기
   useEffect(() => {
@@ -190,167 +452,21 @@ const ChatRoom = (props: Props) => {
     }
   }, [apiSearchChatRoomDtlData]);
 
+  // 클라이언트 시작
   useEffect(() => {
     if (!tokenData?.accessToken) return;
 
-    // 구독 참조 저장
-    let subscriptionRef: any = null;
+    const client = generateClient();
 
-    const stompClient = new Client({
-      brokerURL: `${process.env.NEXT_PUBLIC_JCHAT_WS_URL}/ws`,
-      connectHeaders: {
-        Authorization: `Bearer ${tokenData.accessToken}`,
-      },
-      heartbeatIncoming: 10000, // 10초마다 서버에서 받기
-      heartbeatOutgoing: 10000, // 10초마다 서버로 보내기
-      reconnectDelay: 5000, // 재연결 시도
-      // beforeConnect: () => {},
-      onConnect: (frame) => {
-        console.log("연결 성공", frame);
-        setConnected(true); // 콜백 안이라 괜찮음
-        queryClient.setQueryData(
-          ["apiSearchChatRoomDtl", roomId],
-          (old: TSearchChatRoomDtlResDto) => ({
-            ...old,
-            data: {
-              ...old.data,
-              chatRoomMsgList: [
-                ...(old.data.chatRoomMsgList ?? []),
-                // {
-                //   roomId: roomId,
-                //   msgId: `T${randomUUID}`,
-                //   sndName: "알림",
-                //   msgContent: "연결됨",
-                // },
-              ],
-            },
-          })
-        );
-
-        const messageQueue: ISendMsgResDto[] = [];
-        let isProcessing = false;
-
-        // queue 사용
-        const processQueue = () => {
-          if (isProcessing || messageQueue.length === 0) return;
-          isProcessing = true;
-
-          while (messageQueue.length > 0) {
-            const res = messageQueue.shift()!;
-
-            queryClient.setQueryData<TSearchChatRoomDtlResDto>(
-              ["apiSearchChatRoomDtl", roomId],
-              (old) => {
-                if (!old) return old;
-
-                const oldList = old.data.chatRoomMsgList ?? [];
-
-                // tempId 교체
-                if (res.tempId) {
-                  const tempIdx = oldList.findIndex(
-                    (msg) => msg.msgId === res.tempId
-                  );
-
-                  if (tempIdx !== -1) {
-                    const newList = [...oldList];
-                    newList[tempIdx] = res.chatRoomMsg;
-                    return {
-                      ...old,
-                      data: { ...old.data, chatRoomMsgList: newList },
-                    };
-                  }
-                }
-
-                // 중복 체크
-                if (
-                  oldList.some((msg) => msg.msgId === res.chatRoomMsg.msgId)
-                ) {
-                  return old;
-                }
-
-                // 새 메시지 추가
-                return {
-                  ...old,
-                  data: {
-                    ...old.data,
-                    chatRoomMsgList: [...oldList, res.chatRoomMsg],
-                  },
-                };
-              }
-            );
-          }
-
-          isProcessing = false;
-        };
-
-        subscriptionRef = stompClient.subscribe(
-          `/topic/chat/send/${roomId}`,
-          (message) => {
-            const res: ISendMsgResDto = JSON.parse(message.body);
-
-            // 새 매새지 user가 본인이면
-            // if (res.chatRoomMsg.sndUserNo === user.userNo) {
-            //   // 스크롤 바닥으로 보내기
-            //   scrollToBottom();
-            // }
-
-            // 메세지큐 데이터 삽입
-            messageQueue.push(res);
-            processQueue();
-          }
-        );
-      },
-      onDisconnect: () => {
-        console.log("연결 끊김");
-        // 구독 해제
-        setConnected(false);
-
-        if (subscriptionRef) {
-          subscriptionRef.unsubscribe();
-          subscriptionRef = null;
-        }
-      },
-      onStompError: (frame) => {
-        setConnected(false);
-        console.error("STOMP 에러:", frame);
-      },
-      // 비정상적인 close
-      onWebSocketClose: (event) => {
-        console.error("onWebSocketClose", event);
-        // console.error("에러 타입:", event.type);
-        setConnected(false);
-
-        // 정상적인 종료(clean close)인 경우 재연결 안 함
-        // if (event?.code === 1000) {
-        //   console.log("정상 종료, 재연결 안 함");
-        //   return;
-        // }
-
-        // 비정상 종료만 재연결
-        // console.log("비정상 종료, 5초 후 재연결 시도...");
-        // setTimeout(() => {
-        //   if (clientRef.current?.connected === false) {
-        //     stompClient.activate();
-        //   }
-        // }, 5000);
-      },
-    });
-
-    stompClient.activate();
-    clientRef.current = stompClient;
+    // clientRef (함수바깥에서 사용할거)
+    clientRef.current = client;
+    // active
+    client.activate();
 
     // 클린업
     return () => {
-      // 구독 해제
-      if (subscriptionRef) {
-        subscriptionRef.unsubscribe();
-        subscriptionRef = null;
-      }
-
       // 연결 해제
-      if (stompClient) {
-        stompClient.deactivate();
-      }
+      client.deactivate();
     };
   }, [roomId, queryClient, tokenData]);
 
