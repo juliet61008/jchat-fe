@@ -1,21 +1,21 @@
 // components/chat/ChatRoom.tsx
-"use client";
+'use client';
 
-import Loading from "@/components/common/Loading";
-import { useToken } from "@/hooks/auth/useToken";
-import { IJwtPayLoad } from "@/interface/auth/interfaceJwt";
+import Loading from '@/components/common/Loading';
+import { useToken } from '@/hooks/auth/useToken';
+import { IJwtPayLoad } from '@/interface/auth/interfaceJwt';
 import {
   IChatRoomMsg,
   ISearchChatRoomDtlResDto,
   ISendMsgReqDto,
   ISendMsgResDto,
   TSearchChatRoomDtlResDto,
-} from "@/interface/chat/interfaceChat";
-import { apiSearchChatRoomDtl } from "@/service/chat/apiChat";
-import { Client } from "@stomp/stompjs";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+} from '@/interface/chat/interfaceChat';
+import { apiSearchChatRoomDtl } from '@/service/chat/apiChat';
+import { Client } from '@stomp/stompjs';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Send } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   user: IJwtPayLoad;
@@ -28,7 +28,7 @@ const ChatRoom = (props: Props) => {
   const { tokenData, refreshTokenData } = useToken();
 
   // 메세지 input
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('');
   // 소켓 연결
   const [connected, setConnected] = useState(false);
   // 첫 마운트시 로딩 추가 (reactQuery의 Loading과 같이 사용)
@@ -40,6 +40,8 @@ const ChatRoom = (props: Props) => {
   const msgBoxRef = useRef<HTMLDivElement>(null);
   // 첫마운트 검사 ref
   const isFstMountedRef = useRef<boolean>(false);
+  // 첫번째 클라이언트 생성 검사 ref
+  const isFstClientRef = useRef<boolean>(true);
 
   // STOMP 클라이언트
   const clientRef = useRef<Client | null>(null);
@@ -66,11 +68,12 @@ const ChatRoom = (props: Props) => {
   // );
 
   // 메시지 (클라이언트에서만 fetch, 실시간)
-  const {
-    data: apiSearchChatRoomDtlData,
-    isLoading: apiSearchChatRoomDtlLoading,
-  } = useQuery<TSearchChatRoomDtlResDto, Error, ISearchChatRoomDtlResDto>({
-    queryKey: ["apiSearchChatRoomDtl", roomId],
+  const { data: apiSearchChatRoomDtlData, isLoading: apiSearchChatRoomDtlLoading } = useQuery<
+    TSearchChatRoomDtlResDto,
+    Error,
+    ISearchChatRoomDtlResDto
+  >({
+    queryKey: ['apiSearchChatRoomDtl', roomId],
     queryFn: () => apiSearchChatRoomDtl(roomId),
     select: (res) => {
       if (res.code !== 0) throw new Error();
@@ -88,7 +91,7 @@ const ChatRoom = (props: Props) => {
    * 바텀으로 이동
    */
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   /**
@@ -110,10 +113,7 @@ const ChatRoom = (props: Props) => {
   };
 
   // queue 사용
-  const processQueue = (
-    messageQueue: ISendMsgResDto[],
-    process: { isProcessing: boolean }
-  ) => {
+  const processQueue = (messageQueue: ISendMsgResDto[], process: { isProcessing: boolean }) => {
     if (process.isProcessing || messageQueue.length === 0) return;
     process.isProcessing = true;
 
@@ -121,7 +121,7 @@ const ChatRoom = (props: Props) => {
       const res = messageQueue.shift()!;
 
       queryClient.setQueryData<TSearchChatRoomDtlResDto>(
-        ["apiSearchChatRoomDtl", roomId],
+        ['apiSearchChatRoomDtl', roomId],
         (old) => {
           if (!old) return old;
 
@@ -129,9 +129,7 @@ const ChatRoom = (props: Props) => {
 
           // tempId 교체
           if (res.tempId) {
-            const tempIdx = oldList.findIndex(
-              (msg) => msg.msgId === res.tempId
-            );
+            const tempIdx = oldList.findIndex((msg) => msg.msgId === res.tempId);
 
             if (tempIdx !== -1) {
               const newList = [...oldList];
@@ -261,14 +259,14 @@ const ChatRoom = (props: Props) => {
       },
       heartbeatIncoming: 10000, // 10초마다 서버에서 받기
       heartbeatOutgoing: 10000, // 10초마다 서버로 보내기
-      reconnectDelay: 5000, // 재연결 시도
+      // reconnectDelay: 5000, // 재연결 시도
       // beforeConnect: async () => {},
       onConnect: (frame) => {
-        console.log("연결 성공", frame);
+        console.log('연결 성공', frame);
 
         setConnected(true); // 콜백 안이라 괜찮음
         queryClient.setQueryData(
-          ["apiSearchChatRoomDtl", roomId],
+          ['apiSearchChatRoomDtl', roomId],
           (old: TSearchChatRoomDtlResDto) => ({
             ...old,
             data: {
@@ -297,22 +295,24 @@ const ChatRoom = (props: Props) => {
           messageQueue.push(res);
           processQueue(messageQueue, process);
         });
+
+        client.subscribe(`/topic/chat/read/${roomId}`, (message) => {});
       },
-      onDisconnect: () => {
-        console.log("연결 끊김");
+      onDisconnect: (event) => {
+        console.log('연결 끊김');
         // 구독 해제
         setConnected(false);
       },
       onStompError: async (frame) => {
-        console.error("STOMP 에러:", frame);
+        console.error('STOMP 에러:', frame);
 
         setConnected(false);
 
         await client.deactivate();
 
-        const message = frame.body || frame.headers.message || "";
+        const message = frame.body || frame.headers.message || '';
         // "401:" 로 시작하면 인증 에러
-        if (message.startsWith("401")) {
+        if (message.startsWith('401')) {
           await refreshTokenData();
 
           const newClient = generateClient(tokenData?.accessToken);
@@ -321,9 +321,15 @@ const ChatRoom = (props: Props) => {
         }
       },
       // 비정상적인 close
-      onWebSocketClose: (event) => {
-        console.error("onWebSocketClose", event);
+      onWebSocketClose: async (event) => {
+        console.log('onWebSocketClose', event);
         setConnected(false);
+        if (event.code !== 1000) {
+          if (clientRef.current) {
+            await clientRef.current.deactivate();
+            clientRef.current.activate();
+          }
+        }
       },
     });
 
@@ -343,10 +349,10 @@ const ChatRoom = (props: Props) => {
         msgId: tempId,
         sndUserNo: user.sub,
         sndName: user.name,
-        msgTypCd: "01",
+        msgTypCd: '01',
         msgContent: inputValue.trim(),
-        mineYn: "Y",
-        delYn: "N",
+        mineYn: 'Y',
+        delYn: 'N',
         createTm: Date.now().toString(),
       };
 
@@ -354,20 +360,17 @@ const ChatRoom = (props: Props) => {
         const chatSendParams: ISendMsgReqDto = {
           tempId: tempId,
           roomId: roomId,
-          roomName: apiSearchChatRoomDtlData?.chatRoom.roomName ?? "",
+          roomName: apiSearchChatRoomDtlData?.chatRoom.roomName ?? '',
           msgContent: inputValue,
         };
 
         queryClient.setQueryData(
-          ["apiSearchChatRoomDtl", roomId],
+          ['apiSearchChatRoomDtl', roomId],
           (old: TSearchChatRoomDtlResDto) => ({
             ...old,
             data: {
               ...old.data,
-              chatRoomMsgList: [
-                ...(old.data.chatRoomMsgList ?? []),
-                newMessage,
-              ],
+              chatRoomMsgList: [...(old.data.chatRoomMsgList ?? []), newMessage],
             },
           })
         );
@@ -378,7 +381,7 @@ const ChatRoom = (props: Props) => {
           body: JSON.stringify(chatSendParams),
         });
 
-        setInputValue("");
+        setInputValue('');
       }
     }
   };
@@ -388,7 +391,7 @@ const ChatRoom = (props: Props) => {
    * @param e
    */
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -398,26 +401,26 @@ const ChatRoom = (props: Props) => {
    * 브라우저 백그라운드 감지
    * 포그라운드 돌아올 경우 재연결
    * */
-  useEffect(() => {
-    const visibilitychange = async () => {
-      if (!document.hidden) {
-        if (clientRef.current) {
-          await clientRef.current.deactivate();
-          clientRef.current.activate();
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", visibilitychange);
-
-    // 클린업
-    return () => {
-      document.removeEventListener("visibilitychange", visibilitychange);
-      if (clientRef.current) {
-        clientRef.current.deactivate();
-      }
-    };
-  }, []);
+  // useEffect(() => {
+  //   const visibilitychange = async () => {
+  //     if (!document.hidden) {
+  //       if (clientRef.current) {
+  //         await clientRef.current.deactivate();
+  //         clientRef.current.activate();
+  //       }
+  //     }
+  //   };
+  //
+  //   document.addEventListener('visibilitychange', visibilitychange);
+  //
+  //   // 클린업
+  //   return () => {
+  //     document.removeEventListener('visibilitychange', visibilitychange);
+  //     if (clientRef.current) {
+  //       clientRef.current.deactivate();
+  //     }
+  //   };
+  // }, []);
 
   // 첫번째 loading 끝나면 바닥으로 바로 보내기
   useEffect(() => {
@@ -441,8 +444,7 @@ const ChatRoom = (props: Props) => {
   // 새 메세지 아래로내리기
   useEffect(() => {
     // 마지막 메세지 본인 여부
-    const lastMsgMineYn =
-      apiSearchChatRoomDtlData?.chatRoomMsgList.at(-1)?.mineYn === "Y";
+    const lastMsgMineYn = apiSearchChatRoomDtlData?.chatRoomMsgList.at(-1)?.mineYn === 'Y';
 
     // 바닥 치고 있었는지 여부
     const isBottom = checkIfBottom();
@@ -456,12 +458,16 @@ const ChatRoom = (props: Props) => {
   useEffect(() => {
     if (!tokenData?.accessToken) return;
 
+    if (!isFstClientRef.current) return;
+
     const client = generateClient();
 
     // clientRef (함수바깥에서 사용할거)
     clientRef.current = client;
     // active
     client.activate();
+
+    isFstClientRef.current = false;
 
     // 클린업
     return () => {
@@ -487,14 +493,9 @@ const ChatRoom = (props: Props) => {
                     ? apiSearchChatRoomDtlData?.chatRoomUserList
                         .filter((obj, idx) => idx < 2)
                         .map((obj) => obj.name)
-                        .join(",") +
-                      ` 외 ${
-                        (apiSearchChatRoomDtlData?.chatRoomUserList.length ??
-                          3) - 3
-                      } 명`
-                    : apiSearchChatRoomDtlData?.chatRoomUserList
-                        .map((obj) => obj.name)
-                        .join(", "))}
+                        .join(',') +
+                      ` 외 ${(apiSearchChatRoomDtlData?.chatRoomUserList.length ?? 3) - 3} 명`
+                    : apiSearchChatRoomDtlData?.chatRoomUserList.map((obj) => obj.name).join(', '))}
               </h2>
               <p className="text-sm text-muted-foreground">
                 {apiSearchChatRoomDtlData?.chatRoomUserList.length}명
@@ -509,61 +510,48 @@ const ChatRoom = (props: Props) => {
           >
             {apiSearchChatRoomDtlData &&
               apiSearchChatRoomDtlData.chatRoomMsgList &&
-              apiSearchChatRoomDtlData.chatRoomMsgList.map(
-                (rommMsgObj, rommMsgIdx) => (
+              apiSearchChatRoomDtlData.chatRoomMsgList.map((rommMsgObj, rommMsgIdx) => (
+                <div
+                  key={rommMsgIdx}
+                  className={`flex ${
+                    rommMsgObj.sndUserNo === user.sub ? 'justify-end' : 'justify-start'
+                  }`}
+                >
                   <div
-                    key={rommMsgIdx}
-                    className={`flex ${
-                      rommMsgObj.sndUserNo === user.sub
-                        ? "justify-end"
-                        : "justify-start"
+                    className={`flex items-end gap-2 max-w-[70%] ${
+                      rommMsgObj.sndUserNo === user.sub ? 'flex-row-reverse' : 'flex-row'
                     }`}
                   >
+                    {!(rommMsgObj.sndUserNo === user.sub) && (
+                      <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
+                    )}
                     <div
-                      className={`flex items-end gap-2 max-w-[70%] ${
-                        rommMsgObj.sndUserNo === user.sub
-                          ? "flex-row-reverse"
-                          : "flex-row"
+                      className={`flex flex-col ${
+                        rommMsgObj.sndUserNo === user.sub ? 'items-end' : 'items-start'
                       }`}
                     >
                       {!(rommMsgObj.sndUserNo === user.sub) && (
-                        <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
+                        <span className="text-sm font-medium mb-1">{rommMsgObj.sndName}</span>
                       )}
                       <div
-                        className={`flex flex-col ${
+                        className={`px-3 py-2 rounded-lg ${
                           rommMsgObj.sndUserNo === user.sub
-                            ? "items-end"
-                            : "items-start"
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-foreground'
                         }`}
                       >
-                        {!(rommMsgObj.sndUserNo === user.sub) && (
-                          <span className="text-sm font-medium mb-1">
-                            {rommMsgObj.sndName}
-                          </span>
-                        )}
-                        <div
-                          className={`px-3 py-2 rounded-lg ${
-                            rommMsgObj.sndUserNo === user.sub
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-foreground"
-                          }`}
-                        >
-                          {rommMsgObj.msgContent}
-                        </div>
+                        {rommMsgObj.msgContent}
                       </div>
-                      <span className="text-xs text-muted-foreground self-end mb-1">
-                        {new Date(rommMsgObj.createTm).toLocaleTimeString(
-                          "ko-KR",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}
-                      </span>
                     </div>
+                    <span className="text-xs text-muted-foreground self-end mb-1">
+                      {new Date(rommMsgObj.createTm).toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
                   </div>
-                )
-              )}
+                </div>
+              ))}
             <div ref={messagesEndRef} />
           </div>
 
