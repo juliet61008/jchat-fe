@@ -2,7 +2,7 @@
  * 채팅 인터페이스
  */
 
-import { IApiResponse } from "@/interface/common/interfaceApiResponse";
+import { IApiResponse } from '@/interface/common/interfaceApiResponse';
 
 /**
  * 채팅방 리스트 조회 RES Data
@@ -20,9 +20,7 @@ export interface ISearchChatRoomListResData {
 /**
  * 채팅방 리스트 조회 RES DTO
  */
-export type TSearchChatRoomListResDto = IApiResponse<
-  ISearchChatRoomListResData[]
->;
+export type TSearchChatRoomListResDto = IApiResponse<ISearchChatRoomListResData[]>;
 
 /**
  * 채팅방 디테일 조회 REQ DTO
@@ -42,7 +40,7 @@ export type TSearchChatRoomDtlResDto = IApiResponse<ISearchChatRoomDtlResDto>;
 export interface IChatRoom {
   roomId: number; // 채팅방 번호
   roomName: string; // 채팅방 이름
-  delYn: "Y" | "N"; // 삭제 여부
+  delYn: 'Y' | 'N'; // 삭제 여부
   roomCd: string; // ??
 }
 /**
@@ -51,8 +49,9 @@ export interface IChatRoom {
 export interface IChatRoomUser {
   userNo: number; // 회원번호
   name: string; // 회원이름
-  friendYn: "Y" | "N"; // 친구여부
-  mineYn: "Y" | "N"; // 내정보여부
+  friendYn: 'Y' | 'N'; // 친구여부
+  mineYn: 'Y' | 'N'; // 내정보여부
+  lastReadMsgId: number; // 마지막 조회한 메세지 아이디
 }
 
 /**
@@ -65,8 +64,8 @@ export interface IChatRoomMsg {
   sndName: string; // 발신자 성함
   msgTypCd: string; // 코드
   msgContent: string; // 메세지 내용
-  mineYn: "Y" | "N"; // 내정보여부
-  delYn: "Y" | "N"; // 삭제여부
+  mineYn: 'Y' | 'N'; // 내정보여부
+  delYn: 'Y' | 'N'; // 삭제여부
   createTm: string; // 생성시간
 }
 
@@ -95,7 +94,6 @@ export interface ISendMsgResDto {
 export interface IReadMsgReqDto {
   roomId: number; // 채팅방번호
   lastReadMsgId: number; // 마지막 읽은 메세지 번호
-  lastReadMsgCreateTm: Date;
 }
 
 /**
@@ -105,5 +103,4 @@ export interface IReadMsgResDto {
   roomId: number; // 채팅방번호
   userNo: number;
   lastReadMsgId: number; // 마지막 읽은 메세지 번호
-  lastReadMsgCreateTm: Date;
 }
