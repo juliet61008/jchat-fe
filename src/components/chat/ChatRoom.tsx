@@ -6,6 +6,8 @@ import { useToken } from '@/hooks/auth/useToken';
 import { IJwtPayLoad } from '@/interface/auth/interfaceJwt';
 import {
   IChatRoomMsg,
+  IReadMsgReqDto,
+  IReadMsgResDto,
   ISearchChatRoomDtlResDto,
   ISendMsgReqDto,
   ISendMsgResDto,
@@ -15,7 +17,7 @@ import { apiSearchChatRoomDtl } from '@/service/chat/apiChat';
 import { Client } from '@stomp/stompjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Send } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface Props {
   user: IJwtPayLoad;
@@ -47,6 +49,9 @@ const ChatRoom = (props: Props) => {
   const clientRef = useRef<Client | null>(null);
   // userQueryClient
   const queryClient = useQueryClient();
+
+  // 읽은 메시지 ID들을 모음
+  const readQueueRef = useRef<Set<number>>(new Set());
 
   // TODO READ 쓰로틀로 개발중
   // const test = () => {
@@ -112,7 +117,7 @@ const ChatRoom = (props: Props) => {
     return isNearBottom; // 또는 isNearBottom
   };
 
-  // queue 사용
+  // 메세지발송 구독queue 처리
   const processQueue = (messageQueue: ISendMsgResDto[], process: { isProcessing: boolean }) => {
     if (process.isProcessing || messageQueue.length === 0) return;
     process.isProcessing = true;
@@ -127,7 +132,7 @@ const ChatRoom = (props: Props) => {
 
           const oldList = old.data.chatRoomMsgList ?? [];
 
-          // tempId 교체
+          // tempId 로 찾기
           if (res.tempId) {
             const tempIdx = oldList.findIndex((msg) => msg.msgId === res.tempId);
 
@@ -139,6 +144,11 @@ const ChatRoom = (props: Props) => {
                 data: { ...old.data, chatRoomMsgList: newList },
               };
             }
+          }
+
+          if (clientRef.current) {
+            // 메세지 읽음 처리 발행
+            readQueueRef.current.add(res.chatRoomMsg.msgId as number);
           }
 
           // 중복 체크
@@ -160,92 +170,6 @@ const ChatRoom = (props: Props) => {
 
     process.isProcessing = false;
   };
-
-  // /**
-  //  * 클라이언트 생성
-  //  * @returns
-  //  */
-  // const generateClient = () => {
-  //   const client = new Client({
-  //     brokerURL: `${process.env.NEXT_PUBLIC_JCHAT_WS_URL}/ws`,
-  //     connectHeaders: {
-  //       Authorization: `Bearer ${tokenData?.accessToken}`,
-  //     },
-  //     heartbeatIncoming: 10000, // 10초마다 서버에서 받기
-  //     heartbeatOutgoing: 10000, // 10초마다 서버로 보내기
-  //     reconnectDelay: 5000, // 재연결 시도
-  //     // beforeConnect: async () => {},
-  //     onConnect: (frame) => {
-  //       console.log("연결 성공", frame);
-
-  //       setConnected(true); // 콜백 안이라 괜찮음
-  //       queryClient.setQueryData(
-  //         ["apiSearchChatRoomDtl", roomId],
-  //         (old: TSearchChatRoomDtlResDto) => ({
-  //           ...old,
-  //           data: {
-  //             ...old.data,
-  //             chatRoomMsgList: [
-  //               ...(old.data.chatRoomMsgList ?? []),
-  //               // {
-  //               //   roomId: roomId,
-  //               //   msgId: `T${randomUUID}`,
-  //               //   sndName: "알림",
-  //               //   msgContent: "연결됨",
-  //               // },
-  //             ],
-  //           },
-  //         })
-  //       );
-
-  //       // 메세지 정렬할 queue
-  //       const messageQueue: ISendMsgResDto[] = [];
-  //       const process = { isProcessing: false };
-
-  //       // 메세지 발송 구독
-  //       client.subscribe(`/topic/chat/send/${roomId}`, (message) => {
-  //         const res: ISendMsgResDto = JSON.parse(message.body);
-
-  //         // 메세지큐 데이터 삽입
-  //         messageQueue.push(res);
-  //         processQueue(messageQueue, process);
-  //       });
-
-  //       // read 구독
-  //       client.subscribe(`/topic/chat/read/${roomId}`, (message) => {});
-  //     },
-  //     onDisconnect: () => {
-  //       console.log("연결 끊김");
-  //       // 구독 해제
-  //       setConnected(false);
-  //     },
-  //     onStompError: async (frame) => {
-  //       console.error("STOMP 에러:", frame);
-
-  //       setConnected(false);
-
-  //       await client.deactivate();
-
-  //       const message = frame.body || frame.headers.message || "";
-  //       // "401:" 로 시작하면 인증 에러
-  //       if (message.startsWith("401")) {
-  //         await refreshTokenData();
-
-  //         const newClient = generateClient(tokenData?.accessToken);
-
-  //         newClient.activate();
-  //       }
-  //     },
-  //     // 비정상적인 close
-  //     onWebSocketClose: (event) => {
-  //       console.error("onWebSocketClose", event);
-  //       client.deactivate();
-  //       setConnected(false);
-  //     },
-  //   });
-
-  //   return client;
-  // };
 
   /**
    * 클라이언트 생성
@@ -296,10 +220,26 @@ const ChatRoom = (props: Props) => {
           processQueue(messageQueue, process);
         });
 
-        client.subscribe(`/topic/chat/read/${roomId}`, (message) => {});
+        client.subscribe(`/topic/chat/read/${roomId}`, (message) => {
+          const res: IReadMsgResDto = JSON.parse(message.body);
+          console.log('읽음처리 구독 message : ', message.body);
+          queryClient.setQueryData<TSearchChatRoomDtlResDto>(
+            ['apiSearchChatRoomDtl', roomId],
+            (old) => {
+              if (!old) return old;
+
+              const newChatRoomUserList = old.data.chatRoomUserList.map((obj) => ({
+                ...obj,
+                lastReadMsgId: obj.userNo === res.userNo ? res.lastReadMsgId : obj.lastReadMsgId,
+              }));
+
+              return { ...old, data: { ...old.data, chatRoomUserList: newChatRoomUserList } };
+            }
+          );
+        });
       },
       onDisconnect: (event) => {
-        console.log('연결 끊김');
+        console.log('연결 끊김', event);
         // 구독 해제
         setConnected(false);
       },
@@ -324,11 +264,9 @@ const ChatRoom = (props: Props) => {
       onWebSocketClose: async (event) => {
         console.log('onWebSocketClose', event);
         setConnected(false);
-        if (event.code !== 1000) {
-          if (clientRef.current) {
-            await clientRef.current.deactivate();
-            clientRef.current.activate();
-          }
+        if (clientRef.current) {
+          await clientRef.current.deactivate();
+          clientRef.current.activate();
         }
       },
     });
@@ -397,30 +335,78 @@ const ChatRoom = (props: Props) => {
     }
   };
 
+  // 안읽은 수 계산 함수
+  const calculateUnreadCount = useCallback(
+    (message: IChatRoomMsg): number => {
+      if (!apiSearchChatRoomDtlData) {
+        return 0;
+      }
+
+      // 해당 메시지를 안 읽은 사람 수 계산
+      return apiSearchChatRoomDtlData.chatRoomUserList.filter((user) => {
+        // 발신자는 제외
+        if (user.userNo === message.sndUserNo) return false;
+
+        // lastReadMsgId보다 현재 메시지 ID가 크면 안 읽은 것
+        return Number(message.msgId) > user.lastReadMsgId || 0;
+      }).length;
+    },
+    [apiSearchChatRoomDtlData]
+  );
+
   /**
    * 브라우저 백그라운드 감지
    * 포그라운드 돌아올 경우 재연결
    * */
-  // useEffect(() => {
-  //   const visibilitychange = async () => {
-  //     if (!document.hidden) {
-  //       if (clientRef.current) {
-  //         await clientRef.current.deactivate();
-  //         clientRef.current.activate();
-  //       }
-  //     }
-  //   };
-  //
-  //   document.addEventListener('visibilitychange', visibilitychange);
-  //
-  //   // 클린업
-  //   return () => {
-  //     document.removeEventListener('visibilitychange', visibilitychange);
-  //     if (clientRef.current) {
-  //       clientRef.current.deactivate();
-  //     }
-  //   };
-  // }, []);
+  useEffect(() => {
+    const visibilitychange = async () => {
+      if (!document.hidden) {
+        if (clientRef.current) {
+          await clientRef.current.deactivate();
+          clientRef.current.activate();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', visibilitychange);
+
+    // 클린업
+    return () => {
+      document.removeEventListener('visibilitychange', visibilitychange);
+      if (clientRef.current) {
+        clientRef.current.deactivate();
+      }
+    };
+  }, []);
+
+  // 메세지 발행 배치처리
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (readQueueRef.current.size > 0) {
+        // ID가 timestamp 기반이면 가장 큰 값
+        const latestMessageId = Math.max(...Array.from(readQueueRef.current));
+
+        const chatReadParams: IReadMsgReqDto = {
+          roomId: roomId,
+          lastReadMsgId: latestMessageId,
+        };
+
+        // 읽음처리 발행
+        if (clientRef.current) {
+          clientRef.current.publish({
+            destination: `/app/chat/read/${roomId}`,
+            body: JSON.stringify(chatReadParams),
+          });
+
+          // 읽음처리 queue 초기화
+          readQueueRef.current.clear();
+        }
+      }
+    }, 1000);
+
+    // 클린업
+    return () => clearInterval(interval);
+  }, [roomId]);
 
   // 첫번째 loading 끝나면 바닥으로 바로 보내기
   useEffect(() => {
@@ -456,7 +442,7 @@ const ChatRoom = (props: Props) => {
 
   // 클라이언트 시작
   useEffect(() => {
-    if (!tokenData?.accessToken) return;
+    if (!tokenData?.accessToken || !apiSearchChatRoomDtlData) return;
 
     if (!isFstClientRef.current) return;
 
@@ -464,6 +450,14 @@ const ChatRoom = (props: Props) => {
 
     // clientRef (함수바깥에서 사용할거)
     clientRef.current = client;
+
+    if (apiSearchChatRoomDtlData && apiSearchChatRoomDtlData.chatRoomMsgList) {
+      const lastObj = apiSearchChatRoomDtlData.chatRoomMsgList.at(-1);
+      if (lastObj) {
+        readQueueRef.current.add(lastObj.msgId as number);
+      }
+    }
+
     // active
     client.activate();
 
@@ -474,7 +468,7 @@ const ChatRoom = (props: Props) => {
       // 연결 해제
       client.deactivate();
     };
-  }, [roomId, queryClient, tokenData]);
+  }, [roomId, queryClient, tokenData, apiSearchChatRoomDtlData]);
 
   return (
     <>
@@ -510,48 +504,62 @@ const ChatRoom = (props: Props) => {
           >
             {apiSearchChatRoomDtlData &&
               apiSearchChatRoomDtlData.chatRoomMsgList &&
-              apiSearchChatRoomDtlData.chatRoomMsgList.map((rommMsgObj, rommMsgIdx) => (
-                <div
-                  key={rommMsgIdx}
-                  className={`flex ${
-                    rommMsgObj.sndUserNo === user.sub ? 'justify-end' : 'justify-start'
-                  }`}
-                >
+              apiSearchChatRoomDtlData.chatRoomMsgList.map((roomMsgObj, roomMsgIdx) => {
+                // 안읽은수
+                const unreadCount = calculateUnreadCount(roomMsgObj);
+
+                return (
                   <div
-                    className={`flex items-end gap-2 max-w-[70%] ${
-                      rommMsgObj.sndUserNo === user.sub ? 'flex-row-reverse' : 'flex-row'
+                    key={roomMsgIdx}
+                    className={`flex ${
+                      roomMsgObj.sndUserNo === user.sub ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    {!(rommMsgObj.sndUserNo === user.sub) && (
-                      <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
-                    )}
                     <div
-                      className={`flex flex-col ${
-                        rommMsgObj.sndUserNo === user.sub ? 'items-end' : 'items-start'
+                      className={`flex items-end gap-2 max-w-[70%] ${
+                        roomMsgObj.sndUserNo === user.sub ? 'flex-row-reverse' : 'flex-row'
                       }`}
                     >
-                      {!(rommMsgObj.sndUserNo === user.sub) && (
-                        <span className="text-sm font-medium mb-1">{rommMsgObj.sndName}</span>
+                      {!(roomMsgObj.sndUserNo === user.sub) && (
+                        <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
                       )}
                       <div
-                        className={`px-3 py-2 rounded-lg ${
-                          rommMsgObj.sndUserNo === user.sub
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-foreground'
+                        className={`flex flex-col ${
+                          roomMsgObj.sndUserNo === user.sub ? 'items-end' : 'items-start'
                         }`}
                       >
-                        {rommMsgObj.msgContent}
+                        {!(roomMsgObj.sndUserNo === user.sub) && (
+                          <span className="text-sm font-medium mb-1">{roomMsgObj.sndName}</span>
+                        )}
+                        <div
+                          className={`px-3 py-2 rounded-lg ${
+                            roomMsgObj.sndUserNo === user.sub
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-foreground'
+                          }`}
+                        >
+                          {roomMsgObj.msgContent}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-0.5 self-end mb-1">
+                        <span className="text-xs text-muted-foreground">
+                          {unreadCount > 0 && (
+                            <span className="text-xs font-semibold text-yellow-500 p-2">
+                              {unreadCount}
+                            </span>
+                          )}
+                          <span>
+                            {new Date(roomMsgObj.createTm).toLocaleTimeString('ko-KR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </span>
                       </div>
                     </div>
-                    <span className="text-xs text-muted-foreground self-end mb-1">
-                      {new Date(rommMsgObj.createTm).toLocaleTimeString('ko-KR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             <div ref={messagesEndRef} />
           </div>
 
