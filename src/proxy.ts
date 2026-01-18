@@ -1,12 +1,12 @@
-import { ITokenDto } from "@/interface/auth/interfaceAuthLogin";
-import { IApiResponse } from "@/interface/common/interfaceApiResponse";
-import { NextResponse, type NextRequest } from "next/server";
+import { ITokenDto } from '@/interface/auth/interfaceAuthLogin';
+import { IApiResponse } from '@/interface/common/interfaceApiResponse';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  const accessToken = request.cookies.get("accessToken")?.value;
-  const refreshToken = request.cookies.get("refreshToken")?.value;
+  const accessToken = request.cookies.get('accessToken')?.value;
+  const refreshToken = request.cookies.get('refreshToken')?.value;
 
   if (
     (!accessToken || !isTokenValid(accessToken)) &&
@@ -21,24 +21,21 @@ export async function middleware(request: NextRequest) {
 
   if (refreshToken && isTokenValid(refreshToken)) {
     try {
-      const refreshRes = await fetch(
-        `${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/refreshToken`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${refreshToken}`,
-          },
-        }
-      );
+      const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/refreshToken`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${refreshToken}`,
+        },
+      });
 
       if (refreshRes.ok) {
         const refreshData: IApiResponse<ITokenDto> = await refreshRes.json();
         if (refreshData.code !== 0) {
-          console.error("Refresh response invalid");
-          window.location.href = "/mem/login";
-          throw new Error("Token refresh failed");
+          console.error('Refresh response invalid');
+          window.location.href = '/mem/login';
+          throw new Error('Token refresh failed');
         }
 
         const newAccessToken = refreshData.data?.accessToken;
@@ -50,13 +47,11 @@ export async function middleware(request: NextRequest) {
           // accessToken 설정
           if (newAccessToken) {
             const accessMaxAge = calculateMaxAge(newAccessToken);
-            rewriteResponse.cookies.set("accessToken", newAccessToken, {
+            rewriteResponse.cookies.set('accessToken', newAccessToken, {
               httpOnly: true,
-              secure: process.env.NEXT_PUBLIC_COOKIE_SECURE === "true",
-              sameSite: (process.env.NEXT_PUBLIC_COOKIE_SAME_SITE || "lax") as
-                | "lax"
-                | "none",
-              path: "/",
+              secure: process.env.NEXT_PUBLIC_COOKIE_SECURE === 'true',
+              sameSite: (process.env.NEXT_PUBLIC_COOKIE_SAME_SITE || 'lax') as 'lax' | 'none',
+              path: '/',
               maxAge: accessMaxAge,
             });
             console.log(`AccessToken refreshed, maxAge: ${accessMaxAge}s`);
@@ -65,13 +60,11 @@ export async function middleware(request: NextRequest) {
           // refreshToken 설정 (Rotation)
           if (newRefreshToken) {
             const refreshMaxAge = calculateMaxAge(newRefreshToken);
-            rewriteResponse.cookies.set("refreshToken", newRefreshToken, {
+            rewriteResponse.cookies.set('refreshToken', newRefreshToken, {
               httpOnly: true,
-              secure: process.env.NEXT_PUBLIC_COOKIE_SECURE === "true",
-              sameSite: (process.env.NEXT_PUBLIC_COOKIE_SAME_SITE || "lax") as
-                | "lax"
-                | "none",
-              path: "/",
+              secure: process.env.NEXT_PUBLIC_COOKIE_SECURE === 'true',
+              sameSite: (process.env.NEXT_PUBLIC_COOKIE_SAME_SITE || 'lax') as 'lax' | 'none',
+              path: '/',
               maxAge: refreshMaxAge,
             });
             console.log(`RefreshToken rotated, maxAge: ${refreshMaxAge}s`);
@@ -81,7 +74,7 @@ export async function middleware(request: NextRequest) {
         }
       }
     } catch (error) {
-      console.error("Token refresh failed:", error);
+      console.error('Token refresh failed:', error);
     }
   }
 
@@ -90,7 +83,7 @@ export async function middleware(request: NextRequest) {
 
 function isTokenValid(token: string): boolean {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const payload = JSON.parse(atob(token.split('.')[1]));
     return payload.exp * 1000 > Date.now();
   } catch {
     return false;
@@ -99,13 +92,13 @@ function isTokenValid(token: string): boolean {
 
 function calculateMaxAge(token: string): number {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const payload = JSON.parse(atob(token.split('.')[1]));
     const exp = payload.exp;
     const now = Math.floor(Date.now() / 1000);
     const maxAge = exp - now;
     return maxAge > 0 ? maxAge : 0;
   } catch (error) {
-    console.error("Failed to calculate maxAge:", error);
+    console.error('Failed to calculate maxAge:', error);
     return 3600;
   }
 }
@@ -130,7 +123,7 @@ function parseTokensFromSetCookie(setCookie: string | null): {
 
 export const config = {
   matcher: [
-    "/",
-    "/((?!_next/static|_next/image|api|unauthorizedAccess.html|temp_verification.png).*)",
+    '/',
+    '/((?!_next/static|_next/image|api|unauthorizedAccess.html|temp_verification.png).*)',
   ],
 };
