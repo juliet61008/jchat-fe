@@ -1,4 +1,4 @@
-import { IApiResponse } from "@/interface/common/interfaceApiResponse";
+import { IApiResponse } from '@/interface/common/interfaceApiResponse';
 
 /**
  * other 유저 공통
@@ -9,9 +9,10 @@ export interface IComOtherUser {
   name: string; // 친구 이름
   aliasNm: string; // 친구 별칭
   birth: number; // 친구생일
-  friendYn: "Y" | "N"; // 친구여부
-  likeYn: "Y" | "N"; // 즐겨찾기 여부
-  blockYn: "Y" | "N"; // 친구차단 여부
+  friendYn: 'Y' | 'N'; // 친구여부
+  likeYn: 'Y' | 'N'; // 즐겨찾기 여부
+  blockYn: 'Y' | 'N'; // 친구차단 여부
+  progileImgUrl: string; // 대표프로필이미지
 }
 
 /**
@@ -32,8 +33,8 @@ export type TSearchFriendResDto = IApiResponse<ISearchFriendResData>;
  */
 export interface IMergeFriendReqDto {
   relationUserNo: number; // 친구관계번호
-  likeYn?: "Y" | "N"; // 즐겨찾기여부
-  blockYn?: "Y" | "N"; // 차단여부
+  likeYn?: 'Y' | 'N'; // 즐겨찾기여부
+  blockYn?: 'Y' | 'N'; // 차단여부
   aliasNm?: string; // 별칭
 }
 
@@ -41,7 +42,7 @@ export interface IMergeFriendReqDto {
  * 유저관계변경 응답 DTO Data
  */
 export interface IMergeFriendResData {
-  succYn: "Y" | "N"; // 성공여부
+  succYn: 'Y' | 'N'; // 성공여부
 }
 
 /**
