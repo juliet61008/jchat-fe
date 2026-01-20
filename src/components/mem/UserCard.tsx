@@ -3,6 +3,7 @@
 import FriendProfileBottomSheet from '@/components/mem/FriendProfileBottomSheet';
 import { IComOtherUser } from '@/interface/mem/interfaceMemFriend';
 import { MoreVertical } from 'lucide-react';
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface Props {
@@ -24,9 +25,22 @@ export default function UserCard(props: Props) {
 
   const menuRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * 프로필 바텀시트 클로즈 이벤트
+   */
   const onCloseProfileBottomSheet = useCallback(() => {
     setIsProfileBottomSheetOpen(false);
   }, []);
+
+  /**
+   * 프로필 이미지 버튼 클릭 이벤트
+   */
+  const onClickProfileBtn = () => {
+    // 프로필데이터 set
+    setPropfileData(data);
+    // 프로필바텀시트 open
+    setIsProfileBottomSheetOpen(true);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,16 +62,25 @@ export default function UserCard(props: Props) {
     <>
       <div className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-muted flex-shrink-0 overflow-hidden">
+          <div className="w-12 h-12 rounded-full bg-muted flex-shrink-0 overflow-hidden relative">
             <button
               type="button"
-              onClick={() => {
-                setPropfileData(data);
-                setIsProfileBottomSheetOpen(true);
-              }}
+              onClick={onClickProfileBtn}
               className="w-full h-full flex items-center justify-center text-muted-foreground"
             >
-              {data.aliasNm ?? data.name} {/* 별칭 ?? 이름 */}
+              {data.profileImgUrl ? (
+                <>
+                  <Image
+                    src={data.profileImgUrl}
+                    alt={`${data.userNo} profile`}
+                    fill
+                    className="object-cover"
+                  />
+                </>
+              ) : (
+                <>{data.aliasNm ?? data.name}</>
+              )}{' '}
+              {/* 별칭 ?? 이름 */}
             </button>
           </div>
           <span className="font-medium">{data.aliasNm ?? data.name}</span>
@@ -154,6 +177,9 @@ export default function UserCard(props: Props) {
       <FriendProfileBottomSheet
         bottomSheetProps={{ isOpen: isProfileBottomSheetOpen, onClose: onCloseProfileBottomSheet }}
         data={profileData}
+        onOpenChat={onOpenChat}
+        likeFriendBtnClick={likeFriendBtnClick}
+        blockFriendBtnClick={blockFriendBtnClick}
       />
     </>
   );
