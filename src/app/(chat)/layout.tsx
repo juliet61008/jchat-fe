@@ -1,9 +1,10 @@
 // app/(chat)/layout.tsx
-"use client";
+'use client';
 
-import { Menu, User } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import BottomNav from '@/components/layout/BottomNav';
+import { Menu, User } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function ChatLayout({
   children,
@@ -34,19 +35,18 @@ export default function ChatLayout({
               </button>
             </div>
           </header>
-          <main className="flex-1 overflow-y-auto scrollbar-hide">
-            {children}
-          </main>
+          <main className="flex-1 overflow-y-auto scrollbar-hide">{children}</main>
           <footer className="border-t py-3 bg-gray-50 safe-bottom">
-            <div className="text-center text-xs text-gray-500">
-              © 2025 jChat
-            </div>
+            <div className="text-center text-xs text-gray-500">© 2025 jChat</div>
           </footer>
         </div>
       </div>
 
       {/* 모바일에서만 보이는 전체 화면 */}
-      <div className="md:hidden">{children}</div>
+      <div className="md:hidden">
+        {children}
+        <BottomNav />
+      </div>
     </>
   );
 }

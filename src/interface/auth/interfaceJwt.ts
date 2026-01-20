@@ -5,6 +5,7 @@ export interface IJwtPayLoad {
   name: string;
   email: string;
   birth: number;
+  roleIdList: string;
   exp: number;
   iat: number;
   sub: number;
