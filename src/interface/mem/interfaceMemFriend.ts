@@ -12,7 +12,7 @@ export interface IComOtherUser {
   friendYn: 'Y' | 'N'; // 친구여부
   likeYn: 'Y' | 'N'; // 즐겨찾기 여부
   blockYn: 'Y' | 'N'; // 친구차단 여부
-  progileImgUrl: string; // 대표프로필이미지
+  profileImgUrl: string; // 대표프로필이미지
 }
 
 /**
