@@ -1,13 +1,14 @@
+import { IComMenuListSearchResData } from '@/interface/com/interfaceComMenu';
 import { apiSearchComMenuList } from '@/service/com/apiComMenu';
 import { getUser } from '@/utils/mem/userUtil';
 
-let menuCache: any;
+let menuCache: IComMenuListSearchResData[] | null = null;
 
 /**
  * 메뉴 호출
  * @returns
  */
-const cacheMenus = async () => {
+export const cacheMenus = async () => {
   if (menuCache) {
     return menuCache;
   }
@@ -16,35 +17,34 @@ const cacheMenus = async () => {
 
   if (res.code === 0) {
     menuCache = res.data;
-
     return res.data;
   }
 
+  menuCache = null;
   return null;
 };
 
 /**
  * getter
  */
-export const getMenus = async (depth?: number[]) => {
+export const getMenus = async (
+  menus: IComMenuListSearchResData[],
+  depth?: number[]
+): Promise<IComMenuListSearchResData[]> => {
   const user = await getUser();
 
+  const menuArr: IComMenuListSearchResData[] = [];
+
   // 유저 롤권한 목록
-  const roleIds: string[] = user.roleIdList.split('|');
+  const roleIds: number[] = user?.roleIdList?.split('|').map((id) => parseInt(id, 10)) ?? [];
 
   // 유저정보 없거나 roleIds 비어있는 경우
   if (!user || roleIds.length === 0) {
-    roleIds.push('1');
+    // 비회원 롤 삽입
+    roleIds.push(1);
   }
 
-  // 전체롤권한별 메뉴리스트 조회
-  const comMenuListRes = await apiSearchComMenuList();
-
-  // 메뉴 정상 응답 X
-  if (comMenuListRes.code !== 0) throw new Error('Failed To Generate MenuList');
-
-  // 메뉴리스트 데이터
-  const comMenuListData = comMenuListRes.data;
+  if (!menus) return [];
 
   // 메뉴 아이디 셋 (중복제거)
   const menuIdSet: Set<number> = new Set<number>();
@@ -52,14 +52,27 @@ export const getMenus = async (depth?: number[]) => {
   // 롤 권한 기준 반복
   roleIds.forEach((obj, idx) => {
     const roleId = roleIds[idx];
-    // TODO 개발중
-    // comMenuListData.forEach(menuObj => {
-    //   if (menuObj.roleId === roleId) {
 
-    //   }
-
-    // })
+    // 메뉴 리스트 기준 반복
+    menus.forEach((menuObj) => {
+      if (menuObj.roleId === roleId) {
+        menuIdSet.add(menuObj.menuId);
+      }
+    });
   });
+  for (const menuId of menuIdSet) {
+    const menu: IComMenuListSearchResData = menus.find((obj) => obj.menuId === menuId)!;
+    if (menu) {
+      menuArr.push(menu);
+      menuIdSet.delete(menuId);
+    }
+  }
+  // 뎁스설정한 경우
+  if (depth) {
+    return menuArr.filter((obj) => depth.includes(obj.menuDepth));
+  }
+
+  return menuArr;
 };
 
 /**
