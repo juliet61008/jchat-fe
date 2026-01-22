@@ -44,6 +44,7 @@ export default async function RootLayout({
         </header>
         <main className="flex-1 overflow-y-auto scrollbar-hide">{children}</main>
         <footer className="border-t py-3 bg-gray-50 safe-bottom">
+          {/* 바텀 네비게이션 */}
           <BottomNav />
         </footer>
       </div>
