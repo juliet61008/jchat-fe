@@ -1,48 +1,37 @@
 // components/layout/BottomNav.tsx
 'use client';
 
-import { cacheMenus, getMenus } from '@/lib/com/menu';
-import { useQuery } from '@tanstack/react-query';
+import { useMenu } from '@/hooks/com/useMenu';
+import { IComMenuListSearchResData } from '@/interface/com/interfaceComMenu';
 import { Menu, MessageSquare, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const tabs = [
-    { href: '/mem/friend/list', icon: Users, label: '친구' },
-    { href: '/chat/room', icon: MessageSquare, label: '채팅' },
-    { href: '/com/menu', icon: Menu, label: '메뉴' },
-  ];
 
-  const { data: menus } = useQuery({
-    queryKey: ['menus'],
-    queryFn: async () => await cacheMenus(),
-  });
+  const [menus, setMenus] = useState<IComMenuListSearchResData[]>([]);
 
-  const { data: menuList } = useQuery({
-    queryKey: ['BottomNavMenus'],
-    queryFn: async () => {
-      if (!menus) return;
-      return await getMenus(menus, [1]);
-    },
-    enabled: !!menus,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: true,
-  });
+  const menusHook = useMenu();
 
   useEffect(() => {
-    console.log('menuList', menuList);
-  }, [menuList]);
+    const getMenus = async () => {
+      const tmpMenus = await menusHook.getMenus([1]);
+
+      if (tmpMenus) {
+        setMenus(tmpMenus);
+      }
+    };
+    getMenus();
+  }, [menusHook]);
 
   return (
     <>
-      {menuList && menuList.length > 0 && (
+      {menus && menus.length > 0 && (
         <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t safe-bottom">
           <div className="flex items-center justify-around h-16">
-            {menuList.map((menu) => {
+            {menus.map((menu) => {
               const isActive = pathname.startsWith(menu.menuUrl);
               return (
                 <Link
