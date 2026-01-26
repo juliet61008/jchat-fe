@@ -1,8 +1,8 @@
 // components/layout/BottomNav.tsx
 'use client';
 
-import { useMenu } from '@/hooks/com/useMenu';
 import { IComMenuListSearchResData } from '@/interface/com/interfaceComMenu';
+import { useComMenuStore } from '@/store/comMenuStore';
 import { Menu, MessageSquare, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -31,18 +31,17 @@ export default function BottomNav() {
 
   const [menus, setMenus] = useState<IComMenuListSearchResData[]>([]);
 
-  const menusHook = useMenu();
+  const { data: menuData, firstFetch, getData: getMenuData } = useComMenuStore();
 
   useEffect(() => {
-    const getMenus = async () => {
-      const tmpMenus = await menusHook.getMenus([1]);
-
-      if (tmpMenus) {
-        setMenus(tmpMenus);
-      }
+    const processMenu = async () => {
+      await firstFetch();
+      const res = await getMenuData([1]);
+      setMenus(res);
     };
-    getMenus();
-  }, [menusHook]);
+
+    processMenu();
+  }, []);
 
   return (
     <>
