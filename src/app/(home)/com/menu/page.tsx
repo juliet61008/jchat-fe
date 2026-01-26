@@ -1,10 +1,12 @@
+import MenuList from '@/components/com/MenuList';
+
 /**
  * 메뉴 목록
  * @returns
  */
 
 const page = () => {
-  return <div></div>;
+  return <MenuList />;
 };
 
 export default page;

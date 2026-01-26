@@ -52,10 +52,10 @@ export const useComMenuStore = create<IComMenuStore>()(
         }
 
         if (depth) {
-          return menuArr.filter((obj) => depth.includes(obj.menuDepth));
+          return buildMenuTree(menuArr.filter((obj) => depth.includes(obj.menuDepth)));
         }
 
-        return menuArr;
+        return buildMenuTree(menuArr);
       },
 
       setData: (arr) => set({ data: arr }),
@@ -111,3 +111,55 @@ export const useComMenuStore = create<IComMenuStore>()(
     }
   )
 );
+
+/**
+ * flat한 menu 배열 -> 계층형 트리로 전환
+ * - parentMenuId 기준으로 계층 구성 (depth 무관)
+ * - parentMenuId가 0이거나 부모를 찾을 수 없으면 루트로 처리
+ */
+const buildMenuTree = (menuArr: IComMenuListSearchResData[]): IComMenuListSearchResData[] => {
+  if (!menuArr || menuArr.length === 0) return [];
+
+  const menuMap = new Map<number, IComMenuListSearchResData>();
+
+  // 1. Map 생성
+  menuArr.forEach((menu) => {
+    menuMap.set(menu.menuId, { ...menu, children: [] });
+  });
+
+  // 2. 부모-자식 관계 연결
+  const rootMenus: IComMenuListSearchResData[] = [];
+
+  menuMap.forEach((menu) => {
+    // parentMenuId가 0이거나 없으면 루트
+    if (!menu.parentMenuId || menu.parentMenuId === 0) {
+      rootMenus.push(menu);
+    } else {
+      // 부모 찾기
+      const parent = menuMap.get(menu.parentMenuId);
+
+      if (parent && parent.children) {
+        // 부모가 있으면 children에 추가
+        parent.children.push(menu);
+      } else {
+        // 부모가 없으면 루트로 처리 (데이터 정합성 오류 대응)
+        console.warn(
+          `Parent menu (${menu.parentMenuId}) not found for menu (${menu.menuId}). Treating as root.`
+        );
+        rootMenus.push(menu);
+      }
+    }
+  });
+
+  // 3. menuOrder 기준 정렬 (재귀)
+  const sortByOrder = (menus: IComMenuListSearchResData[]): IComMenuListSearchResData[] => {
+    return menus
+      .sort((a, b) => a.menuOrder - b.menuOrder)
+      .map((menu) => ({
+        ...menu,
+        children: menu.children && menu.children.length > 0 ? sortByOrder(menu.children) : [],
+      }));
+  };
+
+  return sortByOrder(rootMenus);
+};

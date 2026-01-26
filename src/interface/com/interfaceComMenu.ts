@@ -12,6 +12,7 @@ export interface IComMenuListSearchResData {
   menuDepth: number; // 메뉴 뎁스
   menuDesc: string; // 메뉴 설명
   sortPath: string; // 소팅
+  children?: IComMenuListSearchResData[]; // 계층형 수정시 사용
 }
 
 // 공통 메뉴 RES DTO
