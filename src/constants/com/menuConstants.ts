@@ -1,0 +1,3 @@
+export const MENU_ID_FRIEND_LIST = 100000000;
+export const MENU_ID_CHAT_LIST = 200000000;
+export const MENU_ID_MENU_LIST = 300000000;

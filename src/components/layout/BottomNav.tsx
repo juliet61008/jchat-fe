@@ -1,6 +1,11 @@
 // components/layout/BottomNav.tsx
 'use client';
 
+import {
+  MENU_ID_CHAT_LIST,
+  MENU_ID_FRIEND_LIST,
+  MENU_ID_MENU_LIST,
+} from '@/constants/com/menuConstants';
 import { IComMenuListSearchResData } from '@/interface/com/interfaceComMenu';
 import { useComMenuStore } from '@/store/comMenuStore';
 import { Menu, MessageSquare, Users } from 'lucide-react';
@@ -58,16 +63,16 @@ export default function BottomNav() {
                     isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
                   }`}
                 >
-                  {menu.menuId === 100100100 ? (
+                  {menu.menuId === MENU_ID_FRIEND_LIST ? (
                     <>
                       <Menu className="w-6 h-6" />
                     </>
-                  ) : menu.menuId === 200100100 ? (
+                  ) : menu.menuId === MENU_ID_CHAT_LIST ? (
                     <>
                       <Users className="w-6 h-6" />
                     </>
                   ) : (
-                    menu.menuId === 300100100 && (
+                    menu.menuId === MENU_ID_MENU_LIST && (
                       <>
                         <MessageSquare className="w-6 h-6" />
                       </>
