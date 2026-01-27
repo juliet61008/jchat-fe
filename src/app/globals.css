@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -199,3 +199,27 @@ body {
 .scrollbar-smooth::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* S.메뉴 슬라이드 */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    max-height: 1000px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+  }
+}
+/* E.메뉴 슬라이드 */
