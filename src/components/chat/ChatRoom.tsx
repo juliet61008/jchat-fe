@@ -17,7 +17,7 @@ import { apiSearchChatRoomDtl } from '@/service/chat/apiChat';
 import { Client } from '@stomp/stompjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Send } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface Props {
   user: IJwtPayLoad;
@@ -96,7 +96,7 @@ const ChatRoom = (props: Props) => {
    * 바텀으로 이동
    */
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
   };
 
   /**
@@ -281,6 +281,7 @@ const ChatRoom = (props: Props) => {
     if (inputValue.trim()) {
       // 낙관적 업데이트 위한 매칭용 임시데이터
       const tempId = `${user.sub}_${Date.now()}_${self.crypto.randomUUID()}`;
+      const trimmedContent = inputValue.trim();
 
       const newMessage: IChatRoomMsg = {
         roomId: roomId,
@@ -288,20 +289,24 @@ const ChatRoom = (props: Props) => {
         sndUserNo: user.sub,
         sndName: user.name,
         msgTypCd: '01',
-        msgContent: inputValue.trim(),
+        msgContent: trimmedContent,
         mineYn: 'Y',
         delYn: 'N',
         createTm: Date.now().toString(),
       };
 
-      if (clientRef.current && clientRef?.current?.connected && inputValue) {
+      if (clientRef.current && clientRef?.current?.connected && trimmedContent) {
         const chatSendParams: ISendMsgReqDto = {
           tempId: tempId,
           roomId: roomId,
           roomName: apiSearchChatRoomDtlData?.chatRoom.roomName ?? '',
-          msgContent: inputValue,
+          msgContent: trimmedContent,
         };
 
+        // 1. 즉시 input 초기화 (사용자 경험 개선)
+        setInputValue('');
+
+        // 2. 낙관적 업데이트
         queryClient.setQueryData(
           ['apiSearchChatRoomDtl', roomId],
           (old: TSearchChatRoomDtlResDto) => ({
@@ -313,13 +318,11 @@ const ChatRoom = (props: Props) => {
           })
         );
 
-        // ref에서 가져옴
+        // 3. 서버에 전송
         clientRef.current.publish({
           destination: `/app/chat/send/${roomId}`,
           body: JSON.stringify(chatSendParams),
         });
-
-        setInputValue('');
       }
     }
   };
@@ -335,24 +338,23 @@ const ChatRoom = (props: Props) => {
     }
   };
 
-  // 안읽은 수 계산 함수
-  const calculateUnreadCount = useCallback(
-    (message: IChatRoomMsg): number => {
-      if (!apiSearchChatRoomDtlData) {
-        return 0;
-      }
+  // 안읽은 수 계산을 메모이제이션 (O(n×m) -> O(n×m) 1회만)
+  const unreadCountMap = useMemo(() => {
+    if (!apiSearchChatRoomDtlData) return new Map<string | number, number>();
 
-      // 해당 메시지를 안 읽은 사람 수 계산
-      return apiSearchChatRoomDtlData.chatRoomUserList.filter((user) => {
-        // 발신자는 제외
-        if (user.userNo === message.sndUserNo) return false;
+    const map = new Map<string | number, number>();
+    const msgList = apiSearchChatRoomDtlData.chatRoomMsgList;
+    const userList = apiSearchChatRoomDtlData.chatRoomUserList;
 
-        // lastReadMsgId보다 현재 메시지 ID가 크면 안 읽은 것
-        return Number(message.msgId) > user.lastReadMsgId || 0;
+    msgList?.forEach((msg) => {
+      const count = userList.filter((user) => {
+        if (user.userNo === msg.sndUserNo) return false;
+        return Number(msg.msgId) > (user.lastReadMsgId || 0);
       }).length;
-    },
-    [apiSearchChatRoomDtlData]
-  );
+      map.set(msg.msgId as string | number, count);
+    });
+    return map;
+  }, [apiSearchChatRoomDtlData]);
 
   /**
    * 브라우저 백그라운드 감지
@@ -427,10 +429,13 @@ const ChatRoom = (props: Props) => {
     return () => clearInterval(loadingInterval);
   }, [apiSearchChatRoomDtlLoading]);
 
-  // 새 메세지 아래로내리기
+  // 새 메세지 아래로내리기 (의존성 최적화)
   useEffect(() => {
+    if (!apiSearchChatRoomDtlData?.chatRoomMsgList) return;
+
     // 마지막 메세지 본인 여부
-    const lastMsgMineYn = apiSearchChatRoomDtlData?.chatRoomMsgList.at(-1)?.mineYn === 'Y';
+    const lastMsg = apiSearchChatRoomDtlData.chatRoomMsgList.at(-1);
+    const lastMsgMineYn = lastMsg?.mineYn === 'Y';
 
     // 바닥 치고 있었는지 여부
     const isBottom = checkIfBottom();
@@ -438,7 +443,7 @@ const ChatRoom = (props: Props) => {
     if (lastMsgMineYn || isBottom) {
       scrollToBottom();
     }
-  }, [apiSearchChatRoomDtlData]);
+  }, [apiSearchChatRoomDtlData?.chatRoomMsgList?.length]);
 
   // 클라이언트 시작
   useEffect(() => {
@@ -505,8 +510,8 @@ const ChatRoom = (props: Props) => {
             {apiSearchChatRoomDtlData &&
               apiSearchChatRoomDtlData.chatRoomMsgList &&
               apiSearchChatRoomDtlData.chatRoomMsgList.map((roomMsgObj, roomMsgIdx) => {
-                // 안읽은수
-                const unreadCount = calculateUnreadCount(roomMsgObj);
+                // 안읽은수 (메모이제이션된 Map에서 가져오기)
+                const unreadCount = unreadCountMap.get(roomMsgObj.msgId as string | number) || 0;
 
                 return (
                   <div
