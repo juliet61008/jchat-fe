@@ -23,7 +23,6 @@ export async function proxy(request: NextRequest) {
     try {
       const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/refreshToken`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${refreshToken}`,
