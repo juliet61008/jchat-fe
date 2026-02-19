@@ -5,7 +5,6 @@ import { IApiResponse } from '@/interface/common/interfaceApiResponse';
 import { apiIsLogin } from '@/service/auth/apiAuthLogin';
 import { getUser } from '@/utils/mem/userUtil';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
 interface Props {
@@ -15,8 +14,6 @@ interface Props {
 
 const LoginUserHead = (props: Props) => {
   const { initialUser, initialIsLogin } = props;
-
-  const router = useRouter();
 
   const { data } = useQuery({
     queryKey: ['user'],
@@ -48,19 +45,9 @@ const LoginUserHead = (props: Props) => {
     return isLoginData;
   }, [isLoginData]);
 
-  const handleLoginBtnClick = () => {
-    router.push('/mem/login');
-  };
-
   return (
     <div>
-      <>
-        {isLogin && user ? (
-          <p>{user.name}</p>
-        ) : (
-          <button onClick={handleLoginBtnClick}>log in</button>
-        )}
-      </>
+      <>{isLogin && user && <p>{user.name}</p>}</>
     </div>
   );
 };
