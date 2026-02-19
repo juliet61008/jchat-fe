@@ -36,7 +36,7 @@ export default function BottomNav() {
 
   const [menus, setMenus] = useState<IComMenuListSearchResData[]>([]);
 
-  const { data: menuData, firstFetch, getData: getMenuData } = useComMenuStore();
+  const { firstFetch, getData: getMenuData } = useComMenuStore();
 
   useEffect(() => {
     const processMenu = async () => {
@@ -59,27 +59,26 @@ export default function BottomNav() {
                 <Link
                   key={menu.menuId}
                   href={menu.menuUrl}
-                  className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors ${
-                    isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
+                  className={`relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors hover:bg-gray-100 ${
+                    isActive ? 'text-primary' : 'text-gray-400 hover:text-primary'
                   }`}
                 >
+                  {/* 활성 상태 상단 인디케이터 바 */}
+                  {isActive && (
+                    <span className="absolute top-0 left-2 right-2 h-0.5 rounded-full bg-primary" />
+                  )}
                   {menu.menuId === MENU_ID_FRIEND_LIST ? (
-                    <>
-                      <Menu className="w-6 h-6" />
-                    </>
+                    <Menu className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
                   ) : menu.menuId === MENU_ID_CHAT_LIST ? (
-                    <>
-                      <Users className="w-6 h-6" />
-                    </>
+                    <Users className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
                   ) : (
                     menu.menuId === MENU_ID_MENU_LIST && (
-                      <>
-                        <MessageSquare className="w-6 h-6" />
-                      </>
+                      <MessageSquare className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
                     )
                   )}
-                  {/* <Icon className="w-6 h-6" /> */}
-                  <span className="text-xs font-medium">{menu.menuName}</span>
+                  <span className={`text-xs ${isActive ? 'font-bold' : 'font-medium'}`}>
+                    {menu.menuName}
+                  </span>
                 </Link>
               );
             })}
