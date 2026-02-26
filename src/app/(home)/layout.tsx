@@ -17,7 +17,7 @@ export default async function RootLayout({
 
   return (
     <>
-      <div className="flex flex-col min-h-screen max-w-md mx-auto bg-white">
+      <div className="flex flex-col h-screen max-w-md mx-auto bg-white">
         <header className="sticky top-0 z-50 bg-white border-b">
           <div className="flex items-center justify-between px-4 py-3">
             {/* 메뉴 아이콘 */}
@@ -42,11 +42,8 @@ export default async function RootLayout({
             </button>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto scrollbar-hide">{children}</main>
-        <footer className="border-t py-3 bg-gray-50 safe-bottom">
-          {/* 바텀 네비게이션 */}
-          <BottomNav />
-        </footer>
+        <main className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">{children}</main>
+        <BottomNav />
       </div>
     </>
     // <div className="flex flex-col min-h-screen max-w-md mx-auto bg-white">
