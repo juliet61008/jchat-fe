@@ -19,10 +19,8 @@ const Logout = () => {
 
     const fetchRes = await res.json();
 
-    if (fetchRes.code === 0) {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-      queryClient.invalidateQueries({ queryKey: ['isLogin'] });
-    }
+    queryClient.invalidateQueries({ queryKey: ['user'] });
+    queryClient.invalidateQueries({ queryKey: ['isLogin'] });
 
     await logoutServerAction();
 
