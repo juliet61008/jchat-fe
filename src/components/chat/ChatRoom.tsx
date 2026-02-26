@@ -44,6 +44,8 @@ const ChatRoom = (props: Props) => {
   const isFstMountedRef = useRef<boolean>(false);
   // 첫번째 클라이언트 생성 검사 ref
   const isFstClientRef = useRef<boolean>(true);
+  // 의도적 disconnect 여부 (onWebSocketClose 재연결 방지용)
+  const isIntentionalDisconnectRef = useRef<boolean>(false);
 
   // STOMP 클라이언트
   const clientRef = useRef<Client | null>(null);
@@ -244,31 +246,39 @@ const ChatRoom = (props: Props) => {
         setConnected(false);
       },
       onStompError: async (frame) => {
-        console.error('STOMP 에러:', frame);
-
         setConnected(false);
 
+        // 의도적 disconnect 플래그 onWebSocketClose 재연결 차단
+        isIntentionalDisconnectRef.current = true;
         await client.deactivate();
 
         const message = frame.body || frame.headers.message || '';
         // "401:" 로 시작하면 인증 에러
         if (message.startsWith('401')) {
+          console.info('갱신로직실행:', frame);
           const newTokenData = await refreshTokenData();
 
           if (!newTokenData) {
+            isIntentionalDisconnectRef.current = false;
             // TODO 갱신실패 사용자에세 알려주는 ux 및 후처리 필요 (리프레시? 재갱신요청?)
             return;
           }
 
           const newClient = generateClient(newTokenData?.accessToken);
           clientRef.current = newClient;
+          isIntentionalDisconnectRef.current = false;
           newClient.activate();
+        } else {
+          isIntentionalDisconnectRef.current = false;
+          console.info('갱신외 에러', message);
         }
       },
       // 비정상적인 close
       onWebSocketClose: async (event) => {
         console.log('onWebSocketClose', event);
         setConnected(false);
+        // 의도적 disconnect면 재연결 skip (onStompError, visibilitychange에서 직접 처리)
+        if (isIntentionalDisconnectRef.current) return;
         if (clientRef.current) {
           await clientRef.current.deactivate();
           clientRef.current.activate();
@@ -369,7 +379,9 @@ const ChatRoom = (props: Props) => {
     const visibilitychange = async () => {
       if (!document.hidden) {
         if (clientRef.current) {
+          isIntentionalDisconnectRef.current = true;
           await clientRef.current.deactivate();
+          isIntentionalDisconnectRef.current = false;
           clientRef.current.activate();
         }
       }
