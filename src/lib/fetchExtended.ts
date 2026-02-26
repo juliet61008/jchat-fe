@@ -46,7 +46,7 @@ export async function fetchExtended(url: string, options: FetchOptions = {}): Pr
 
     if (!refreshToken) {
       console.error('No refresh token, redirecting to login...');
-      // window.location.href = "/mem/login";
+      window.location.href = '/mem/login';
       throw new Error('Authentication required');
     }
 
@@ -83,7 +83,7 @@ export async function fetchExtended(url: string, options: FetchOptions = {}): Pr
       });
     } else {
       console.error('Refresh failed');
-      // window.location.href = "/mem/login";
+      window.location.href = '/mem/login';
       throw new Error('Authentication required');
     }
   }

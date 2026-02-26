@@ -26,7 +26,7 @@ const Logout = () => {
 
     await logoutServerAction();
 
-    if (res != null) router.replace('/');
+    if (res != null) router.replace(`${process.env.NEXT_PUBLIC_JCHAT_HOST}/`);
   };
 
   useEffect(() => {

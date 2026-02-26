@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Loading from "@/components/common/Loading";
-import { Button } from "@/components/ui/button";
+import Loading from '@/components/common/Loading';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardAction,
@@ -10,14 +10,14 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { IAuthLoginReqDto } from "@/interface/auth/interfaceAuthLogin";
-import { loginServerAction } from "@/utils/auth/authUtil";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import React, { useRef, useState } from "react";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { IAuthLoginReqDto } from '@/interface/auth/interfaceAuthLogin';
+import { loginServerAction } from '@/utils/auth/authUtil';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import React, { useRef, useState } from 'react';
 
 const Login = () => {
   /***************
@@ -54,11 +54,11 @@ const Login = () => {
     // });
     if (e) {
       switch (e.currentTarget.id) {
-        case "id": {
+        case 'id': {
           // setId(e.currentTarget.value);
           break;
         }
-        case "password": {
+        case 'password': {
           // setPassword(e.currentTarget.value);
           break;
         }
@@ -72,10 +72,8 @@ const Login = () => {
   /**
    * 엔터 keydown 이벤트
    */
-  const handlePasswordInputKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
-    if (e.code === "Enter") {
+  const handlePasswordInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.code === 'Enter') {
       handleLoginBtnClick();
     }
   };
@@ -92,16 +90,16 @@ const Login = () => {
     const formData = new FormData(formRef.current);
 
     // name 속성으로 값 추출
-    const id: string = formData.get("id") as string;
-    const password: string = formData.get("password") as string;
+    const id: string = formData.get('id') as string;
+    const password: string = formData.get('password') as string;
 
     if (!id) {
-      alert("아이디 입력");
+      alert('아이디 입력');
       return;
     }
 
     if (!password) {
-      alert("비밀번호 입력");
+      alert('비밀번호 입력');
       return;
     }
 
@@ -117,24 +115,24 @@ const Login = () => {
     // 정상 인증
     if (res.code === 0) {
       // 로그인 성공 후 user 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      queryClient.invalidateQueries({ queryKey: ["isLogin"] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: ['isLogin'] });
 
-      router.push("/");
+      router.replace(`${process.env.NEXT_PUBLIC_JCHAT_HOST}/`);
     }
     // 아이디 조회 불가
     else if (res.code === -2) {
-      alert("아이디 틀림");
-      document.getElementById("id")?.focus();
+      alert('아이디 틀림');
+      document.getElementById('id')?.focus();
     }
     // 비밀번호 틀림
     else if (res.code === -3) {
-      alert("비번 틀림");
-      document.getElementById("password")?.focus();
+      alert('비번 틀림');
+      document.getElementById('password')?.focus();
     }
     // 외
     else {
-      alert("로그인 불가");
+      alert('로그인 불가');
     }
     setIsLoading(false);
   };
@@ -143,7 +141,7 @@ const Login = () => {
    * Sign Up 버튼 이벤트
    */
   const handleSignUpBtnClick = () => {
-    router.push("/mem/register");
+    router.push('/mem/register');
   };
 
   return (
@@ -197,11 +195,7 @@ const Login = () => {
           </form>
         </CardContent>
         <CardFooter className="flex-col gap-2">
-          <Button
-            type="submit"
-            onClick={handleLoginBtnClick}
-            className="w-full"
-          >
+          <Button type="submit" onClick={handleLoginBtnClick} className="w-full">
             로그인
           </Button>
           <Button variant="outline" className="w-full">
