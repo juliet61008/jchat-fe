@@ -19,14 +19,14 @@ const Logout = () => {
 
     const fetchRes = await res.json();
 
-    if (fetchRes.code !== 0) {
+    if (fetchRes.code === 0) {
       queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['isLogin'] });
     }
 
     await logoutServerAction();
 
-    if (res != null) router.replace(`${process.env.NEXT_PUBLIC_JCHAT_HOST}/`);
+    if (res != null) router.replace(`/`);
   };
 
   useEffect(() => {

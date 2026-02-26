@@ -118,7 +118,7 @@ const Login = () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['isLogin'] });
 
-      router.replace(`${process.env.NEXT_PUBLIC_JCHAT_HOST}/`);
+      router.replace(`/`);
     }
     // 아이디 조회 불가
     else if (res.code === -2) {
