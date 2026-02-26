@@ -253,10 +253,15 @@ const ChatRoom = (props: Props) => {
         const message = frame.body || frame.headers.message || '';
         // "401:" 로 시작하면 인증 에러
         if (message.startsWith('401')) {
-          await refreshTokenData();
+          const newTokenData = await refreshTokenData();
 
-          const newClient = generateClient(tokenData?.accessToken);
+          if (!newTokenData) {
+            // TODO 갱신실패 사용자에세 알려주는 ux 및 후처리 필요 (리프레시? 재갱신요청?)
+            return;
+          }
 
+          const newClient = generateClient(newTokenData?.accessToken);
+          clientRef.current = newClient;
           newClient.activate();
         }
       },
@@ -394,7 +399,7 @@ const ChatRoom = (props: Props) => {
         };
 
         // 읽음처리 발행
-        if (clientRef.current) {
+        if (clientRef.current && clientRef.current.connected) {
           clientRef.current.publish({
             destination: `/app/chat/read/${roomId}`,
             body: JSON.stringify(chatReadParams),
@@ -473,7 +478,7 @@ const ChatRoom = (props: Props) => {
       // 연결 해제
       client.deactivate();
     };
-  }, [roomId, queryClient, tokenData, apiSearchChatRoomDtlData]);
+  }, [roomId, queryClient, tokenData?.accessToken, apiSearchChatRoomDtlData]);
 
   return (
     <>
