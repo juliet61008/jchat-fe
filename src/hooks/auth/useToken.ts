@@ -13,6 +13,8 @@ export const useToken = (isAutoRefresh: boolean = true) => {
   // 갱신 프로세싱중인지 체크
   const isProcessingRefreshRef = useRef<boolean>(false);
 
+  const tokenDataRef = useRef<ICheckAuthRes | undefined>(undefined);
+
   const { data: tokenData, refetch: refetchTokenData } = useQuery<ICheckAuthRes>({
     queryKey: ['tokenData'],
     queryFn: checkAuth,
@@ -22,20 +24,28 @@ export const useToken = (isAutoRefresh: boolean = true) => {
    * 토큰 강제갱신
    * @returns
    */
-  const refreshTokenData = async () => {
-    if (!tokenData) return;
+  const refreshTokenData = async (): Promise<ICheckAuthRes | undefined> => {
+    if (!tokenData) return undefined;
     try {
       // 갱신 프로세싱 설정
       isProcessingRefreshRef.current = true;
       await tokenRefreshServerAction(tokenData);
-      await refetchTokenData();
+      const { data } = await refetchTokenData();
+      return data;
     } catch {
-      return;
+      return undefined;
     } finally {
       // 갱신 프로세싱 설정
       isProcessingRefreshRef.current = false;
     }
   };
+
+  /**
+   * 렌더링방지 ref 최신화
+   */
+  useEffect(() => {
+    tokenDataRef.current = tokenData;
+  }, [tokenData]);
 
   /**
    * 자동갱신 프로세스
@@ -44,10 +54,10 @@ export const useToken = (isAutoRefresh: boolean = true) => {
 
   // 자동갱신 체크 위한 useEffect
   useEffect(() => {
-    if (!tokenData || !isAutoRefresh) return;
+    if (!tokenDataRef.current || !isAutoRefresh) return;
 
     // 토큰데이터 없는 경우 return
-    if (!tokenData) return;
+    if (!tokenDataRef.current) return;
 
     // 갱신체크 인터벌 초기화
     let interval: any;
@@ -55,7 +65,7 @@ export const useToken = (isAutoRefresh: boolean = true) => {
     // 자동갱신
     if (isAutoRefresh) {
       interval = setInterval(async () => {
-        if (!tokenData) return;
+        if (!tokenDataRef.current) return;
         if (isProcessingRefreshRef.current) {
           return;
         }
@@ -64,7 +74,7 @@ export const useToken = (isAutoRefresh: boolean = true) => {
           // 갱신 프로세싱 설정
           isProcessingRefreshRef.current = true;
           // true: 검증통과 false: 갱신필요
-          const isValid: boolean = await isTokenValid(tokenData.accessToken ?? '');
+          const isValid: boolean = await isTokenValid(tokenDataRef.current.accessToken ?? '');
 
           // 갱신필요
           if (!isValid) {
@@ -87,7 +97,7 @@ export const useToken = (isAutoRefresh: boolean = true) => {
         clearInterval(interval);
       }
     };
-  }, [tokenData, isAutoRefresh, autoRefreshProcess]);
+  }, [isAutoRefresh, refetchTokenData]);
 
   return { tokenData, refreshTokenData };
 };
