@@ -420,13 +420,13 @@ const ChatRoom = (props: Props) => {
     let loadingInterval: any;
 
     if (!apiSearchChatRoomDtlLoading && !isFstMountedRef.current) {
-      // 첫번째 마운트 true로 변경
-      isFstMountedRef.current = true;
       // 바닥으로 바로 보내기
       messagesEndRef.current?.scrollIntoView();
 
       // 로딩 종료
       loadingInterval = setTimeout(() => {
+        // 첫번째 마운트 true로 변경
+        isFstMountedRef.current = true;
         setIsFstMountedLoading(false);
       }, 0);
     }
