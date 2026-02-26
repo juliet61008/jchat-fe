@@ -51,7 +51,7 @@ export default function BottomNav() {
   return (
     <>
       {isShow && menus && menus.length > 0 && (
-        <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t safe-bottom">
+        <nav className="bg-white border-t safe-bottom">
           <div className="flex items-center justify-around h-16">
             {menus.map((menu) => {
               const isActive = pathname.startsWith(menu.menuUrl);
