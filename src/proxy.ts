@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
         const refreshData: IApiResponse<ITokenDto> = await refreshRes.json();
         if (refreshData.code !== 0) {
           console.error('Refresh response invalid');
-          window.location.href = '/mem/login';
+          // window.location.href = '/mem/login';
           throw new Error('Token refresh failed');
         }
 
