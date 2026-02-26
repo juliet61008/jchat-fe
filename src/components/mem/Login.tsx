@@ -118,6 +118,8 @@ const Login = () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['isLogin'] });
 
+      // Next.js RSC 캐시 초기화 후 이동
+      router.refresh();
       router.replace(`/`);
     }
     // 아이디 조회 불가

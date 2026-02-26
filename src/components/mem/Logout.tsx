@@ -12,19 +12,20 @@ const Logout = () => {
   const queryClient = useQueryClient();
 
   const processing = async () => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/logout`, {
+    await fetch(`${process.env.NEXT_PUBLIC_JCHAT_API_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     });
 
-    const fetchRes = await res.json();
-
-    queryClient.invalidateQueries({ queryKey: ['user'] });
-    queryClient.invalidateQueries({ queryKey: ['isLogin'] });
-
+    // 쿠키 먼저 삭제 후 캐시 제거
     await logoutServerAction();
 
-    if (res != null) router.replace(`/`);
+    queryClient.removeQueries({ queryKey: ['user'] });
+    queryClient.removeQueries({ queryKey: ['isLogin'] });
+
+    // Next.js RSC 캐시 초기화 후 이동
+    router.refresh();
+    router.replace(`/`);
   };
 
   useEffect(() => {
