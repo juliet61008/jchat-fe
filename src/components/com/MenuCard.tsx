@@ -3,21 +3,28 @@
 import { IComMenuListSearchResData } from '@/interface/com/interfaceComMenu';
 import { ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { getUser } from '@/utils/mem/userUtil';
+import { IUserInfoDto } from '@/interface/auth/interfaceAuthLogin';
+import { IJwtPayLoad } from '@/interface/auth/interfaceJwt';
 
 interface Props {
   menu: IComMenuListSearchResData;
+  user: IJwtPayLoad;
   isLast?: boolean;
 }
 
 const MenuCard = (props: Props) => {
-  const { menu, isLast = false } = props;
+  const { menu, user, isLast = false } = props;
   const [isExpanded, setIsExpanded] = useState(true);
-  const hasChildren = menu.children && menu.children.length > 0;
-  const router = useRouter();
 
+  const varListRef = useRef({ userNo: user.userNo });
+
+  const hasChildren = menu.children && menu.children.length > 0;
   const isFolder = menu.menuCd === '01';
   const isUrl = menu.menuCd === '02';
+
+  const router = useRouter();
 
   const handleClick = () => {
     if (isFolder) {
@@ -25,7 +32,15 @@ const MenuCard = (props: Props) => {
       return;
     }
     if (isUrl && menu.menuUrl) {
-      router.push(menu.menuUrl);
+      const reg = /#\{[^}]+\}/g;
+
+      const resolvedUrl = menu.menuUrl.replace(reg, (match) => {
+        const key = match.slice(2, -1); // #{key} -> key
+        const vars = varListRef.current as Record<string, unknown>;
+        return vars[key] !== undefined ? String(vars[key]) : match;
+      });
+
+      router.push(resolvedUrl);
     }
   };
 
@@ -63,6 +78,7 @@ const MenuCard = (props: Props) => {
             <MenuCard
               key={childMenu.menuId}
               menu={childMenu}
+              user={user}
               isLast={index === menu.children!.length - 1}
             />
           ))}
