@@ -9,12 +9,20 @@ import { useComMenuStore } from '@/store/comMenuStore';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { IUserInfoDto } from '@/interface/auth/interfaceAuthLogin';
+import { IJwtPayLoad } from '@/interface/auth/interfaceJwt';
 
 /**
  * 메뉴리스트 클라이언트 컴포넌트
  */
 
-const MenuList = () => {
+interface Props {
+  user: IJwtPayLoad;
+}
+
+const MenuList = (props: Props) => {
+  const { user } = props;
+
   const [menus, setMenus] = useState<IComMenuListSearchResData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -90,7 +98,7 @@ const MenuList = () => {
           {menus.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">등록된 메뉴가 없습니다</div>
           ) : (
-            menus.map((menu) => <MenuCard key={menu.menuId} menu={menu} />)
+            menus.map((menu) => <MenuCard key={menu.menuId} menu={menu} user={user} />)
           )}
         </div>
 
