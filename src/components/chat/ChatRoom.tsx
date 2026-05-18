@@ -49,6 +49,8 @@ const ChatRoom = (props: Props) => {
 
   // STOMP 클라이언트
   const clientRef = useRef<Client | null>(null);
+  // 최신 쿼리 데이터 ref (client effect 의존성 배열에서 제거, 메시지 변경에 재연결 안 일어나게)
+  const apiSearchChatRoomDtlDataRef = useRef<ISearchChatRoomDtlResDto | undefined>(undefined);
   // userQueryClient
   const queryClient = useQueryClient();
 
@@ -462,9 +464,12 @@ const ChatRoom = (props: Props) => {
     }
   }, [apiSearchChatRoomDtlData?.chatRoomMsgList?.length]);
 
+  // client 여부 대신 data 여부 체크
+  const isDataReady = useMemo(() => !!apiSearchChatRoomDtlData, [apiSearchChatRoomDtlData]);
+
   // 클라이언트 시작
   useEffect(() => {
-    if (!tokenData?.accessToken || !apiSearchChatRoomDtlData) return;
+    if (!tokenData?.accessToken || !isDataReady) return;
 
     if (!isFstClientRef.current) return;
 
@@ -473,8 +478,8 @@ const ChatRoom = (props: Props) => {
     // clientRef (함수바깥에서 사용할거)
     clientRef.current = client;
 
-    if (apiSearchChatRoomDtlData && apiSearchChatRoomDtlData.chatRoomMsgList) {
-      const lastObj = apiSearchChatRoomDtlData.chatRoomMsgList.at(-1);
+    if (apiSearchChatRoomDtlDataRef.current?.chatRoomMsgList) {
+      const lastObj = apiSearchChatRoomDtlDataRef.current.chatRoomMsgList.at(-1);
       if (lastObj) {
         readQueueRef.current.add(lastObj.msgId as number);
       }
@@ -490,7 +495,7 @@ const ChatRoom = (props: Props) => {
       // 연결 해제
       client.deactivate();
     };
-  }, [roomId, queryClient, tokenData?.accessToken, apiSearchChatRoomDtlData]);
+  }, [roomId, queryClient, tokenData?.accessToken, isDataReady]);
 
   return (
     <>
